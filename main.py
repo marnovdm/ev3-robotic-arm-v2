@@ -181,12 +181,11 @@ def calibrate_motors():
     
     logger.info('shoulder motor, finding minimum...')
     shoulder_motor.on(-10, False)
-    shoulder_motor.wait_until('stalled')
+    shoulder_control1.wait_until('stalled')
     shoulder_motor.reset()
     logger.info('shoulder motor, finding maximum...')
-    shoulder_motor.on(100, False)
-    # time.sleep(1)
-    shoulder_motor.wait_until('stalled')
+    shoulder_motor.on(50, False)
+    shoulder_control1.wait_until('stalled')
     shoulder_motor.stop()
     logger.info('OK, max at {}'.format(shoulder_motor.position))
     
@@ -199,7 +198,17 @@ def calibrate_motors():
     elbow_motor.wait_until('stalled')
     elbow_motor.stop()
     logger.info('OK, max at {}'.format(elbow_motor.position))
-
+    
+    logger.info('roll motor, finding minimum...')
+    roll_motor.on(-10, False)
+    roll_motor.wait_until('stalled')
+    roll_motor.reset()
+    logger.info('roll motor, finding maximum...')
+    roll_motor.on(10, False)
+    roll_motor.wait_until('stalled')
+    roll_motor.stop()
+    logger.info('OK, max at {}'.format(roll_motor.position))
+    
     # @TODO check if these are wired correctly
     # roll_motor.wait_until('stalled')
     # pitch_motor.wait_until('stalled')
