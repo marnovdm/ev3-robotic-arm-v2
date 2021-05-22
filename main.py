@@ -103,6 +103,18 @@ spin_motor.position = 0
 if grabber_motor:
     grabber_motor.position = 0
 
+"""
+print(waist_motor.stop_action)
+print(shoulder_control1.stop_action)
+print(shoulder_control2.stop_action)
+print(elbow_motor.stop_action)
+print(roll_motor.stop_action)
+print(pitch_motor.stop_action)
+print(spin_motor.stop_action)
+if grabber_motor:
+    print(grabber_motor.stop_action)
+"""
+
 # Ratios
 waist_ratio = 7.5
 shoulder_ratio = 7.5
@@ -226,55 +238,56 @@ class MotorThread(threading.Thread):
                 shoulder_motor.stop()
 
             if not elbow_motor.is_running and upward_speed > 0:
-                elbow_motor.on_to_position(normal_speed,elbow_max*elbow_ratio,True,False) #Up
+                elbow_motor.on_to_position(normal_speed,elbow_max*elbow_ratio,True,False)  # Up
             elif not elbow_motor.is_running and upward_speed < 0:
-                elbow_motor.on_to_position(normal_speed,elbow_min*elbow_ratio,True,False) #Down
+                elbow_motor.on_to_position(normal_speed,elbow_min*elbow_ratio,True,False)  # Down
             elif upward_speed == 0 and elbow_motor.is_running:
                 elbow_motor.stop()
 
             if not waist_motor.is_running and turning_left:
                 logger.info('moving left...')
-                waist_motor.on_to_position(fast_speed,waist_min*waist_ratio,True,False) #Left
+                waist_motor.on_to_position(fast_speed,waist_min*waist_ratio,True,False)  # Left
             elif not waist_motor.is_running and turning_right:
                 logger.info('moving right...')
-                waist_motor.on_to_position(fast_speed,waist_max*waist_ratio,True,False) #Right
+                waist_motor.on_to_position(fast_speed,waist_max*waist_ratio,True,False) # Right
             elif not turning_left and not turning_right and waist_motor.is_running:
                 logger.info('stopped moving left/right')
                 waist_motor.stop()
 
             if not roll_motor.is_running and roll_left:
-                roll_motor.on_to_position(normal_speed,roll_min*roll_ratio,True,False) #Left
+                roll_motor.on_to_position(slow_speed,roll_min*roll_ratio,True,False)  # Left
             elif not roll_motor.is_running and roll_right:
-                roll_motor.on_to_position(normal_speed,roll_max*roll_ratio,True,False) #Right
+                roll_motor.on_to_position(slow_speed,roll_max*roll_ratio,True,False)  # Right
             elif not roll_left and not roll_right and roll_motor.is_running:
                 roll_motor.stop()
 
             if not pitch_motor.is_running and pitch_up:
-                pitch_motor.on_to_position(slow_speed,pitch_max*pitch_ratio,True,False) #Up
+                pitch_motor.on_to_position(slow_speed,pitch_max*pitch_ratio,True,False)  # Up
             elif not pitch_motor.is_running and pitch_down:
-                pitch_motor.on_to_position(slow_speed,pitch_min*pitch_ratio,True,False) #Down
+                pitch_motor.on_to_position(slow_speed,pitch_min*pitch_ratio,True,False)  # Down
             elif not pitch_up and not pitch_down and pitch_motor.is_running:
                 pitch_motor.stop()
 
             if not spin_motor.is_running and spin_left:
-                spin_motor.on_to_position(normal_speed,spin_min*spin_ratio,True,False) #Left
+                spin_motor.on_to_position(normal_speed,spin_min*spin_ratio,True,False) # Left
             elif not spin_motor.is_running and spin_right:
-                spin_motor.on_to_position(normal_speed,spin_max*spin_ratio,True,False) #Right
+                spin_motor.on_to_position(normal_speed,spin_max*spin_ratio,True,False) # Right
             elif not spin_left and not spin_right and spin_motor.is_running:
                 spin_motor.stop()
 
             if grabber_motor:
                 if grabber_open:
-                    grabber_motor.on_to_position(normal_speed,grabber_max*grabber_ratio,True,True) #Close
+                    grabber_motor.on_to_position(normal_speed,grabber_max*grabber_ratio,True,True)  # Close
                     grabber_motor.stop()
                 elif grabber_close:
-                    grabber_motor.on_to_position(normal_speed,grabber_min*grabber_ratio,True,True) #Open
+                    grabber_motor.on_to_position(normal_speed,grabber_min*grabber_ratio,True,True)  # Open
                     grabber_motor.stop()
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
 
 
 def clean_shutdown():
+    logger.info('Shutting down...')
     running = False
     waist_motor.stop()
     shoulder_motor.stop()
