@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 __author__ = 'Nino Guba'
 
+import asyncio
 import logging
 import os
 import sys
@@ -20,12 +21,12 @@ from evdev import InputDevice, categorize, ecodes
 
 # Config
 REMOTE_HOST = '10.42.0.3'
+ASYNC_GAMEPAD = False
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s')
 # logging.getLogger().addHandler(logging.StreamHandler(sys.stderr))
 logger = logging.getLogger(__name__)
-
 
 ## Some helpers ##
 def scale(val, src, dst):
@@ -235,6 +236,7 @@ class MotorThread(threading.Thread):
             if not waist_motor.is_running and turning_left:
                 logger.info('moving left...')
                 waist_motor.on_to_position(fast_speed,waist_min*waist_ratio,True,False) #Left
+                # waist_motor.on(fast_speed,True,False) #Left
             elif not waist_motor.is_running and turning_right:
                 logger.info('moving right...')
                 waist_motor.on_to_position(fast_speed,waist_max*waist_ratio,True,False) #Right
@@ -250,9 +252,9 @@ class MotorThread(threading.Thread):
                 roll_motor.stop()
 
             if not pitch_motor.is_running and pitch_up:
-                pitch_motor.on_to_position(slow_speed,pitch_max*pitch_ratio,True,False) #Up
+                pitch_motor.on_to_position(normal_speed,pitch_max*pitch_ratio,True,False) #Up
             elif not pitch_motor.is_running and pitch_down:
-                pitch_motor.on_to_position(slow_speed,pitch_min*pitch_ratio,True,False) #Down
+                pitch_motor.on_to_position(normal_speed,pitch_min*pitch_ratio,True,False) #Down
             elif not pitch_up and not pitch_down and pitch_motor.is_running:
                 pitch_motor.stop()
 
@@ -272,18 +274,16 @@ class MotorThread(threading.Thread):
                     grabber_motor.stop()
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
-
-
-def clean_shutdown():
-    running = False
-    waist_motor.stop()
-    shoulder_motor.stop()
-    elbow_motor.stop()
-    roll_motor.stop()
-    pitch_motor.stop()
-    spin_motor.stop()
-    if grabber_motor:
-        grabber_motor.stop()
+        
+        logging.info('No longer running... shutting down')
+        waist_motor.stop()
+        shoulder_motor.stop()
+        elbow_motor.stop()
+        roll_motor.stop()
+        pitch_motor.stop()
+        spin_motor.stop()
+        if grabber_motor:
+            grabber_motor.stop()
 
 
 # calibrate_motors()
@@ -292,8 +292,24 @@ motor_thread = MotorThread()
 motor_thread.setDaemon(True)
 motor_thread.start()
 
-try:
-    for event in gamepad.read_loop():   # this loops infinitely
+# this requires evdev >= 1.0.0 which is not available by default on ev3dev. Install it using python3-pip
+# https://python-evdev.readthedocs.io/en/latest/changelog.html
+async def process_input(gamepad):
+    
+    global forward_speed
+    global forward_side_speed
+    global upward_speed
+    global upward_side_speed
+    global turning_left
+    global turning_right
+    global roll_left
+    global roll_right
+    global pitch_up
+    global pitch_down
+    global spin_left
+    global spin_right
+
+    async for event in gamepad.async_read_loop():
         if event.type == 3:
             # logger.info(event)
             if event.code == 0:  # Left stick X-axis
@@ -306,6 +322,22 @@ try:
             #    upward_side_speed = scale_stick(event.value)
             # else:
             #     logger.info('no action')
+            
+            # if forward_speed != 0 and forward_speed < 100 and forward_speed > -100:
+            #     # logger.info('resetting forward_speed from {} to 0'.format(forward_speed))
+            #     forward_speed = 0
+            
+            # if upward_speed != 0 and upward_speed < 100 and upward_speed > -100:
+            #     # logger.info('resetting upward_speed from {} to 0'.format(upward_speed))
+            #     upward_speed = 0
+            
+            # if forward_side_speed != 0 and forward_side_speed < 100 and forward_side_speed > -100:
+            #     logger.info('resetting forward_side_speed from {} to 0'.format(forward_side_speed))
+            #     forward_side_speed = 0
+            
+            # if upward_side_speed != 0 and upward_side_speed < 100 and upward_side_speed > -100:
+            #     logger.info('resetting upward_side_speed from {} to 0'.format(upward_side_speed))
+            #     upward_side_speed = 0
 
         elif event.type == 1:
             # logger.info(event)
@@ -420,5 +452,213 @@ try:
 
                 time.sleep(1)  # Wait for the motor thread to finish
                 break
-except KeyboardInterrupt:
-    clean_shutdown()
+
+
+if ASYNC_GAMEPAD:
+    logger.info('Running ASYNC gamepad loop...')
+    # Start async input handling loop
+    loop = asyncio.get_event_loop()
+    # for signal in [SIGINT, SIGTERM]:
+    #     loop.add_signal_handler(signal, main_task.cancel)
+
+    try:
+        loop.run_until_complete(process_input(gamepad))
+    except KeyboardInterrupt:
+        logger.info('Got CTRL+C, shutting down...')
+        waist_motor.stop()
+        shoulder_motor.stop()
+        elbow_motor.stop()
+        roll_motor.stop()
+        pitch_motor.stop()
+        spin_motor.stop()
+        if grabber_motor:
+            grabber_motor.stop()
+else:
+    logger.info('Running SYNC gamepad loop...')
+    for event in gamepad.read_loop():   # this loops infinitely
+        if event.type == 3:
+            # logger.info(event)
+            if event.code == 0:  # Left stick X-axis
+                forward_speed = scale_stick(event.value)
+            #if event.code == 1:  # Left stick Y-axis
+            #    forward_side_speed = scale_stick(event.value)
+            elif event.code == 3:  # Right stick X-axis
+                upward_speed = -scale_stick(event.value)
+            #if event.code == 4:  # Right stick Y-axis
+            #    upward_side_speed = scale_stick(event.value)
+            # else:
+            #     logger.info('no action')
+            
+            # if forward_speed != 0 and forward_speed < 100 and forward_speed > -100:
+            #     # logger.info('resetting forward_speed from {} to 0'.format(forward_speed))
+            #     forward_speed = 0
+            
+            # if upward_speed != 0 and upward_speed < 100 and upward_speed > -100:
+            #     # logger.info('resetting upward_speed from {} to 0'.format(upward_speed))
+            #     upward_speed = 0
+            
+            # if forward_side_speed != 0 and forward_side_speed < 100 and forward_side_speed > -100:
+            #     logger.info('resetting forward_side_speed from {} to 0'.format(forward_side_speed))
+            #     forward_side_speed = 0
+            
+            # if upward_side_speed != 0 and upward_side_speed < 100 and upward_side_speed > -100:
+            #     logger.info('resetting upward_side_speed from {} to 0'.format(upward_side_speed))
+            #     upward_side_speed = 0
+
+        elif event.type == 1:
+            # logger.info(event)
+            # print('event type: {}, code: {}, value: {}'.format(event.type, event.code, event.value))
+
+            if event.code == 310:  # L1
+                # logger.info('L1')
+                if event.value == 1 and not turning_left:
+                    turning_right = False
+                    turning_left = True
+                    logger.info('LEFT')
+                    # waist_motor.on(fast_speed,True,False) #Left
+                elif event.value == 0 and turning_left:
+                    turning_left = False
+                    # waist_motor.stop()
+                    logger.info('STOP MOVING LEFT')
+
+            elif event.code == 311:  # R1
+                if event.value == 1 and not turning_right:
+                    turning_left = False
+                    turning_right = True
+                    logger.info('RIGHT')
+                    # waist_motor.on(-fast_speed,True,False) #Right
+                elif event.value == 0 and turning_right:
+                    # waist_motor.stop()
+                    turning_right = False
+                    logger.info('STOP MOVING RIGHT')
+
+            elif event.code == 308:  # Square
+                if event.value == 1:
+                    roll_right = False
+                    roll_left = True
+                elif event.value == 0:
+                    roll_left = False
+
+            elif event.code == 305:  # Circle
+                if event.value == 1:
+                    roll_left = False
+                    roll_right = True
+                elif event.value == 0:
+                    roll_right = False
+
+            elif event.code == 307:  # Triangle
+                if event.value == 1:
+                    pitch_down = False
+                    pitch_up = True
+                elif event.value == 0:
+                    pitch_up = False
+
+            elif event.code == 304:  # X
+                if event.value == 1:
+                    pitch_up = False
+                    pitch_down = True
+                elif event.value == 0:
+                    pitch_down = False
+
+            elif event.code == 312:  # L2
+                if event.value == 1:
+                    spin_right = False
+                    spin_left = True
+                elif event.value == 0:
+                    spin_left = False
+
+            elif event.code == 313:  # R2
+                if event.value == 1:
+                    spin_left = False
+                    spin_right = True
+                elif event.value == 0:
+                    spin_right = False
+
+            elif event.code == 318:  # R3
+                if event.value == 1:
+                    if grabber_open:
+                        grabber_open = False
+                        grabber_close = True
+                    else:
+                        grabber_open = True
+                        grabber_close = False
+
+            elif event.code == 315 and event.value == 1:  # Options
+                # Reset
+                roll_motor.on_to_position(normal_speed,0,True,False)
+                pitch_motor.on_to_position(normal_speed,0,True,False)
+                spin_motor.on_to_position(normal_speed,0,True,False)
+                if grabber_motor:
+                    grabber_motor.on_to_position(normal_speed,0,True,True)
+                elbow_motor.on_to_position(slow_speed,0,True,False)
+                shoulder_control1.on_to_position(slow_speed,0,True,False)
+                shoulder_control2.on_to_position(slow_speed,0,True,False)
+                waist_motor.on_to_position(fast_speed,0,True,True)
+
+            elif event.code == 316 and event.value == 1:  # PS
+                logger.info("Engine stopping!")
+                running = False
+
+                # Reset
+                roll_motor.on_to_position(normal_speed,0,True,False)
+                pitch_motor.on_to_position(normal_speed,0,True,False)
+                spin_motor.on_to_position(normal_speed,0,True,False)
+                if grabber_motor:
+                    grabber_motor.on_to_position(normal_speed,0,True,True)
+                elbow_motor.on_to_position(slow_speed,0,True,False)
+                shoulder_control1.on_to_position(slow_speed,0,True,False)
+                shoulder_control2.on_to_position(slow_speed,0,True,False)
+                waist_motor.on_to_position(fast_speed,0,True,True)
+
+                sound.play_song((('E5', 'e'), ('C4', 'e')))
+                leds.set_color("LEFT", "BLACK")
+                leds.set_color("RIGHT", "BLACK")
+                remote_leds.set_color("LEFT", "BLACK")
+                remote_leds.set_color("RIGHT", "BLACK")
+
+                time.sleep(1)  # Wait for the motor thread to finish
+                break
+
+
+"""
+#Calibrations
+waist_motor.on_to_position(fast_speed,(waist_max/2)*waist_ratio,True,True) #Right
+waist_motor.on_to_position(fast_speed,(waist_min/2)*waist_ratio,True,True) #Left
+waist_motor.on_to_position(fast_speed,0,True,True)
+
+shoulder_motor.on_for_degrees(normal_speed,normal_speed,shoulder_max*shoulder_ratio,True,True) #Forward
+shoulder_motor.on_for_degrees(normal_speed,normal_speed,-shoulder_max*shoulder_ratio,True,True) 
+shoulder_motor.on_for_degrees(normal_speed,normal_speed,shoulder_min*shoulder_ratio,True,True) #Backward
+shoulder_motor.on_for_degrees(normal_speed,normal_speed,-shoulder_min*shoulder_ratio,True,True)
+
+elbow_motor.on_to_position(normal_speed,elbow_max*elbow_ratio,True,True) #Up
+elbow_motor.on_to_position(normal_speed,elbow_min*elbow_ratio,True,True) #Down
+
+roll_motor.on_to_position(normal_speed,(roll_max/2)*roll_ratio,True,True) #Right
+roll_motor.on_to_position(normal_speed,(roll_min/2)*roll_ratio,True,True) #Left
+roll_motor.on_to_position(normal_speed,0,True,True)
+
+pitch_motor.on_to_position(normal_speed,pitch_max*pitch_ratio,True,True) #Up
+pitch_motor.on_to_position(normal_speed,pitch_min*pitch_ratio,True,True) #Down
+pitch_motor.on_to_position(normal_speed,0,True,True)
+
+spin_motor.on_to_position(normal_speed,(spin_max/2)*spin_ratio,True,True) #Right
+spin_motor.on_to_position(normal_speed,(spin_min/2)*spin_ratio,True,True) #Left
+spin_motor.on_to_position(normal_speed,0,True,True)
+
+if grabber_motor:
+    grabber_motor.on_to_position(normal_speed,grabber_max*grabber_ratio,True,True) #Close
+    grabber_motor.on_to_position(normal_speed,grabber_min*grabber_ratio,True,True) #Open
+
+#Reach
+elbow_motor.on_to_position(normal_speed,-90*elbow_ratio,True,False) #Up
+shoulder_motor.on_for_degrees(normal_speed,normal_speed,shoulder_max*shoulder_ratio,True,True) #Forward
+waist_motor.on_to_position(fast_speed,waist_max*waist_ratio,True,True) #Right
+elbow_motor.on_to_position(normal_speed,elbow_max*elbow_ratio,True,False) #Up
+shoulder_motor.on_for_degrees(normal_speed,normal_speed,75*shoulder_ratio,True,True) #Reset
+elbow_motor.on_to_position(normal_speed,-90*elbow_ratio,True,False) #Down
+shoulder_motor.on_for_degrees(normal_speed,normal_speed,65*shoulder_ratio,True,True) #Backward
+waist_motor.on_to_position(fast_speed,0,True,True) #Center
+elbow_motor.on_to_position(slow_speed,elbow_min*elbow_ratio,True,True) #Reset
+shoulder_motor.on_for_degrees(slow_speed,slow_speed,-65*shoulder_ratio,True,True) #Reset
+"""
