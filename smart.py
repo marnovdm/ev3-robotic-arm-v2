@@ -19,7 +19,7 @@ from ev3dev2.motor import (OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, LargeMotor,
 # from ev3dev2.sound import Sound
 from evdev import InputDevice, categorize, ecodes
 
-from helper import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor
+from helper import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor, StaticRangeMotor
 
 
 # Config
