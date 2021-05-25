@@ -22,16 +22,20 @@ from evdev import InputDevice, categorize, ecodes
 REMOTE_HOST = '10.42.0.3'
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s')
+logging.basicConfig(level=logging.INFO, stream=sys.stdout,
+                    format='%(message)s')
 logging.getLogger().addHandler(logging.StreamHandler(sys.stderr))
 logger = logging.getLogger(__name__)
 
 ## Some helpers ##
+
+
 def scale(val, src, dst):
     return (float(val - src[0]) / (src[1] - src[0])) * (dst[1] - dst[0]) + dst[0]
 
+
 def scale_stick(value):
-    return scale(value,(0,255),(-1000,1000))
+    return scale(value, (0, 255), (-1000, 1000))
 
 
 ## Initial setup ##
@@ -42,7 +46,8 @@ def scale_stick(value):
 # Use the hostname or IP address of the ev3dev device.
 # If this fails, verify your IP connectivty via ``ping X.X.X.X``
 logger.info("Connecting RPyC to {}...".format(REMOTE_HOST))
-conn = rpyc.classic.connect(REMOTE_HOST) # change this IP address for your slave EV3 brick
+# change this IP address for your slave EV3 brick
+conn = rpyc.classic.connect(REMOTE_HOST)
 #remote_ev3 = conn.modules['ev3dev.ev3']
 remote_motor = conn.modules['ev3dev2.motor']
 remote_led = conn.modules['ev3dev2.led']
@@ -56,8 +61,8 @@ devices = [InputDevice(fn) for fn in evdev.list_devices()]
 #     logger.info("{}".format(device.name))
 
 ps4gamepad = devices[0].fn      # PS4 gamepad
-#ps4motion = devices[1].fn      # PS4 accelerometer
-#ps4touchpad = devices[2].fn    # PS4 touchpad
+# ps4motion = devices[1].fn      # PS4 accelerometer
+# ps4touchpad = devices[2].fn    # PS4 touchpad
 
 gamepad = InputDevice(ps4gamepad)
 
@@ -72,7 +77,7 @@ sound = Sound()
 waist_motor = LargeMotor(OUTPUT_A)
 shoulder_control1 = LargeMotor(OUTPUT_B)
 shoulder_control2 = LargeMotor(OUTPUT_C)
-shoulder_motor = MoveTank(OUTPUT_B,OUTPUT_C)
+shoulder_motor = MoveTank(OUTPUT_B, OUTPUT_C)
 elbow_motor = LargeMotor(OUTPUT_D)
 roll_motor = remote_motor.MediumMotor(remote_motor.OUTPUT_A)
 pitch_motor = remote_motor.MediumMotor(remote_motor.OUTPUT_B)
@@ -153,6 +158,7 @@ grabber_close = False
 # We are running!
 running = True
 
+
 class MotorThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -171,18 +177,21 @@ class MotorThread(threading.Thread):
         remote_leds.set_color("RIGHT", "GREEN")
 
         while running:
-            logger.debug('LEFT: {}, RIGHT: {}'.format(turning_left, turning_right))
+            logger.debug('LEFT: {}, RIGHT: {}'.format(
+                turning_left, turning_right))
             print('#')
             if turning_left:
                 # logger.info('moving left...')
-                waist_motor.on_to_position(fast_speed,waist_min*waist_ratio,True,False) # Left
+                waist_motor.on_to_position(
+                    fast_speed, waist_min*waist_ratio, True, False)  # Left
             elif turning_right:
                 # logger.info('moving right...')
-                waist_motor.on_to_position(fast_speed,waist_max*waist_ratio,True,False) # Right
+                waist_motor.on_to_position(
+                    fast_speed, waist_max*waist_ratio, True, False)  # Right
             elif waist_motor.is_running:
                 # logger.info('stop moving left/right')
                 waist_motor.stop()
-        
+
         logging.info('No longer running... shutting down')
         waist_motor.stop()
         shoulder_motor.stop()
@@ -193,14 +202,17 @@ class MotorThread(threading.Thread):
         if grabber_motor:
             grabber_motor.stop()
 
+
 motor_thread = MotorThread()
 motor_thread.setDaemon(True)
 motor_thread.start()
 
 # this requires evdev >= 1.0.0 which is not available by default on ev3dev. Install it using python3-pip
 # https://python-evdev.readthedocs.io/en/latest/changelog.html
+
+
 async def process_input(gamepad):
-    
+
     global forward_speed
     global forward_side_speed
     global upward_speed

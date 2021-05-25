@@ -21,15 +21,15 @@ class SmartMotorBase:
 
 class LimitedRangeMotor(SmartMotorBase):
     """ handle motors with a limited range of valid movements """
-    _minPos = 0
+    _minPos = 5
     _maxPos = None
-    
+
     def calibrate(self):
         super().calibrate()
         self._motor.on(-self._speed, False)
 
         def checkMotorState(state):
-            print(state)
+            # print(state)
             if 'overloaded' in state or 'stalled' in state:
                 return True
 
@@ -44,12 +44,20 @@ class LimitedRangeMotor(SmartMotorBase):
         self._motor.wait(checkMotorState, 10000)
         self._motor.stop()
 
-        self._maxPos = self._motor.position
-        self._motor.on_to_position(self._speed, self._maxPos / 2, True, True)
-    
+        self._maxPos = self._motor.position - 5
+        self._motor.on_to_position(self._speed, self.centerPos, True, True)
+
     @property
     def maxPos(self):
         return self._maxPos
+
+    @property
+    def minPos(self):
+        return self._minPos
+
+    @property
+    def centerPos(self):
+        return (self._maxPos - self._minPos) / 2
 
 
 class LimitedRangeMotorSet(LimitedRangeMotor):
@@ -76,14 +84,14 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
         self._motor[1].wait(checkMotorState, 10000)
         for motor in self._motor:
             motor.stop()
-        
+
         self._maxPos = self._motor[1].position
         for motor in self._motor:
-            motor.on_to_position(self._speed, self._maxPos / 2, True, False)
+            motor.on_to_position(self._speed, self.centerPos, True, False)
 
-    @property
-    def maxPos(self):
-        return self._maxPos
+    def on_to_position(self, speed, position, brake, wait):
+        for motor in self._motor:
+            motor.on_to_position(speed, position, brake, False)  # @TODO hardcoded no-waiting because of dual motor setup
 
     def reset(self):
         for motor in self._motor:
@@ -92,7 +100,7 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
     def stop(self):
         for motor in self._motor:
             motor.stop()
-    
+
     def on(self, speed):
         for motor in self._motor:
             motor.on(speed)
@@ -101,7 +109,7 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
     def is_running(self):
         return self._motor[0].is_running
 
-    
+
 class ColorSensorMotor(SmartMotorBase):
     _sensor = None
 
@@ -112,10 +120,11 @@ class ColorSensorMotor(SmartMotorBase):
     def calibrate(self):
         super().calibrate()
         if self._sensor.color != 5:
-            self._motor.run_forever(-self._speed, False)  # TODO: non hardcoded negative speed here to reverse direction
+            # TODO: non hardcoded negative speed here to reverse direction
+            self._motor.on(-self._speed, False)
             while self._sensor.color != 5:
                 time.sleep(0.1)
-            
+
         self._motor.reset()
 
 
@@ -131,7 +140,7 @@ class TouchSensorMotor(SmartMotorBase):
     def calibrate(self):
         super().calibrate()
         if not self._sensor.is_pressed:
-            self._motor.run_forever(-self._speed, False)
+            self._motor.on(-self._speed, False)
             self._sensor.wait_for_pressed()
-            
+
         self._motor.reset()
