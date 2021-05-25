@@ -155,6 +155,7 @@ class ColorSensorMotor(SmartMotorBase):
 
         self._motor.reset()
     
+    @property
     def centerPos(self):
         return 0
 

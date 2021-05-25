@@ -25,6 +25,13 @@ from helper import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor, St
 # Config
 REMOTE_HOST = '10.42.0.3'
 
+# Define speeds
+FULL_SPEED = 100
+FAST_SPEED = 75
+NORMAL_SPEED = 50
+SLOW_SPEED = 25
+
+
 # Setup logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                     format='%(message)s')
@@ -182,12 +189,6 @@ spin_max = -360
 spin_min = 360
 grabber_max = -68
 grabber_min = 0
-
-# Define speeds
-FULL_SPEED = 100
-FAST_SPEED = 75
-NORMAL_SPEED = 50
-SLOW_SPEED = 25
 
 # Variables for stick input
 shoulder_speed = 0
