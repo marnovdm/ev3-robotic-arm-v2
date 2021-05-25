@@ -1,0 +1,39 @@
+install-pip-requirements: 
+  stage: requirements
+  script:
+    - pip3 install python-ev3dev2
+  
+#unit-test:
+#  stage: test
+#  script:
+#    - bash tests/run.sh
+    
+flake8:
+  stage: test
+  script:
+    - python3 -m flake8 --statistics --show-source
+
+#docs:
+#  stage: generate_docs
+#  script:
+#    - bash docs/generate.sh
+#  artifacts:
+#    paths:
+#      - docs/
+#
+#pages:
+#  stage: deploy
+#  dependencies:
+#    - docs
+#  script:
+#    - mv docs/ public/
+#  artifacts:
+#    paths:
+#      - public
+#    expire_in: 30 days
+  
+stages:
+  - requirements
+  - test
+#  - generate_docs
+#  - deploy

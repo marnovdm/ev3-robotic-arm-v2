@@ -16,10 +16,10 @@ from ev3dev2.sensor import INPUT_4
 from ev3dev2.sensor.lego import ColorSensor
 from ev3dev2.motor import (OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, LargeMotor,
                            MoveTank)
-from ev3dev2.sound import Sound
+# from ev3dev2.sound import Sound
 from evdev import InputDevice, categorize, ecodes
 
-from helper import SmartMotor
+from helper import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor
 
 
 # Config
@@ -46,22 +46,33 @@ def scale_stick(value, deadzone=100):
 def clean_shutdown():
     logger.info('Shutting down...')
     running = False
+    logger.info('waist..')
     waist_motor.stop()
-    shoulder_motor.stop()
+    logger.info('shoulder..')
+    shoulder_motors.stop()
+    logger.info('elbow..')
     elbow_motor.stop()
-    roll_motor.stop()
+    logger.info('pitch..')
+    pitch_motor.reset()
     pitch_motor.stop()
+    logger.info('roll..')
+    roll_motor.stop()
+    logger.info('spin..')
     spin_motor.stop()
+
     if grabber_motor:
+        logger.info('grabber..')
         grabber_motor.stop()
+
+    logger.info('Shutdown completed.')
 
 # Reset motor positions to default
 def reset_motors():
     logger.info("Resetting motors...")
     waist_motor.reset()
-    shoulder_control1.reset()
-    shoulder_control2.reset()
-    shoulder_motor.reset()
+    # shoulder_control1.reset()
+    # shoulder_control2.reset()
+    shoulder_motors.reset()
     elbow_motor.reset()
     roll_motor.reset()
     pitch_motor.reset()
@@ -79,8 +90,9 @@ def back_to_start():
         grabber_motor.on_to_position(normal_speed,0,True,True)
     
     elbow_motor.on_to_position(slow_speed,0,True,True)
-    shoulder_control1.on_to_position(slow_speed,0,True,True)
-    shoulder_control2.on_to_position(slow_speed,0,True,True)
+    shoulder_motors.on_to_position(slow_speed, 0, True, True)
+    # shoulder_control1.on_to_position(slow_speed,0,True,True)
+    # shoulder_control2.on_to_position(slow_speed,0,True,True)
     waist_motor.on_to_position(fast_speed,0,True,True)
 
 
@@ -100,7 +112,7 @@ logger.info("RPyC started succesfully")
 
 # Gamepad
 # If bluetooth is not available, check https://github.com/ev3dev/ev3dev/issues/1314
-logger.info("Finding wireless controller...")
+logger.info("Connecting wireless controller...")
 devices = [InputDevice(fn) for fn in evdev.list_devices()]
 # for device in devices:
 #     logger.info("{}".format(device.name))
@@ -116,26 +128,26 @@ leds = Leds()
 remote_leds = remote_led.Leds()
 
 # Sound
-sound = Sound()
+# sound = Sound()
 
 # Sensors
 color_sensor = ColorSensor(INPUT_4)
 color_sensor.mode = ColorSensor.MODE_COL_COLOR
 
 # Primary EV3
-waist_motor = LargeMotor(OUTPUT_A)
+waist_motor = ColorSensorMotor(LargeMotor(OUTPUT_A), speed=30, name='waist', sensor=color_sensor)
 shoulder_control1 = LargeMotor(OUTPUT_B)
 shoulder_control2 = LargeMotor(OUTPUT_C)
-shoulder_motor = MoveTank(OUTPUT_B, OUTPUT_C)
-elbow_motor = SmartMotor(LargeMotor(OUTPUT_D), speed=10, name='elbow')
+shoulder_motors = LimitedRangeMotorSet([LargeMotor(OUTPUT_B), LargeMotor(OUTPUT_C)], speed=20, name='shoulder')
+elbow_motor = LimitedRangeMotor(LargeMotor(OUTPUT_D), speed=20, name='elbow')
 
 # Secondary EV3
-roll_motor = SmartMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_A), speed=10, name='roll')
-pitch_motor = SmartMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_B), speed=10, name='pitch')
-spin_motor = SmartMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_C), speed=10, name='spin')
+roll_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_A), speed=20, name='roll')
+pitch_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_B), speed=20, name='pitch')
+spin_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_C), speed=20, name='spin')
 
 try:
-    grabber_motor = SmartMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_D))
+    grabber_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_D))
     logger.info("Grabber motor detected!")
 except DeviceNotFound:
     logger.info("Grabber motor not detected - running without it...")
@@ -178,7 +190,7 @@ fast_speed = 75
 normal_speed = 50
 slow_speed = 25
 
-forward_speed = 0
+shoulder_speed = 0
 forward_side_speed = 0
 
 upward_speed = 0
@@ -202,30 +214,11 @@ running = True
 def calibrate_motors():
     logger.info('Calibrating motors...')
     
-    logger.info('aligning waist motor...')
-    if color_sensor.color != 5:
-        waist_motor.on(20, False)
-        while color_sensor.color != 5:
-            time.sleep(0.1)
-        waist_motor.reset()
-    logger.info('OK')
-    
-    """
-    logger.info('shoulder motor, finding minimum...')
-    shoulder_motor.on(-20, False)
-    shoulder_control1.wait_until('stalled')
-    shoulder_motor.reset()
-    logger.info('shoulder motor, finding maximum...')
-    shoulder_motor.on(20, False)
-    shoulder_control1.wait_until('stalled')
-    shoulder_motor.stop()
-    logger.info('OK, max at {}'.format(shoulder_control1.position))
-    shoulder_control1.on_to_position(40, shoulder_control1.position / 2, True, False)
-    shoulder_control2.on_to_position(40, shoulder_control1.position / 2, True, True)
-    """
-    elbow_motor.calibrate()    
+    waist_motor.calibrate()    
+    shoulder_motors.calibrate()
+    elbow_motor.calibrate()
     roll_motor.calibrate()
-    pitch_motor.calibrate()
+    # pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
 
 
 class MotorThread(threading.Thread):
@@ -248,21 +241,21 @@ class MotorThread(threading.Thread):
         logger.info("Starting main loop...")
         while running:
             # logger.debug('{},{},{},{},{},{},{},{}'.format(turning_left, turning_right, roll_left, roll_right, pitch_up, pitch_down, spin_left, spin_right))
-            if forward_speed > 0 and shoulder_control1.position > ((shoulder_max*shoulder_ratio)+100):
+            if shoulder_speed > 0 and shoulder_control1.position > ((shoulder_max*shoulder_ratio)+100):
                 logger.info('shoulder motor up')
                 # logger.info('Running motors at {}'.format(-normal_speed))
-                logger.info((forward_speed/10)*-1)
-                shoulder_motor.on((forward_speed / 10) * -1, (forward_speed / 10) * -1)
-                # shoulder_motor.on(-normal_speed,-normal_speed)
-            elif forward_speed < 0 and shoulder_control1.position < ((shoulder_min*shoulder_ratio)-100):
+                logger.info((shoulder_speed/10)*-1)
+                shoulder_motors.on((shoulder_speed / 10) * -1)
+                # shoulder_motors.on(-normal_speed,-normal_speed)
+            elif shoulder_speed < 0 and shoulder_control1.position < ((shoulder_min*shoulder_ratio)-100):
                 logger.info('shoulder motor down')
-                logger.info((forward_speed/10)*-1)
-                # shoulder_motor.on(forward_speed/10, forward_speed/10)
+                logger.info((shoulder_speed/10)*-1)
+                # shoulder_motors.on(shoulder_speed/10, shoulder_speed/10)
                 # logger.info('Running motors at {}'.format(normal_speed))
-                shoulder_motor.on((forward_speed/10)*-1, (forward_speed/10)*-1)
-            elif shoulder_motor.is_running:
+                shoulder_motors.on((shoulder_speed/10)*-1)
+            elif shoulder_motors.is_running:
                 logger.info('shoulder motor stop')
-                shoulder_motor.stop()
+                shoulder_motors.stop()
 
             if not elbow_motor.is_running and upward_speed > 0:
                 logger.info(upward_speed)
@@ -329,7 +322,7 @@ try:
         if event.type == 3:
             # logger.info(event)
             if event.code == 0:  # Left stick X-axis
-                forward_speed = scale_stick(event.value)
+                shoulder_speed = scale_stick(event.value)
             #if event.code == 1:  # Left stick Y-axis
             #    forward_side_speed = scale_stick(event.value)
             elif event.code == 3:  # Right stick X-axis
@@ -341,7 +334,7 @@ try:
 
         elif event.type == 1:
             # logger.info(event)
-            # print('event type: {}, code: {}, value: {}'.format(event.type, event.code, event.value))
+            # logger.info('event type: {}, code: {}, value: {}'.format(event.type, event.code, event.value))
 
             if event.code == 310:  # L1
                 # logger.info('L1')
@@ -430,7 +423,7 @@ try:
                 # Reset
                 back_to_start()
 
-                sound.play_song((('E5', 'e'), ('C4', 'e')))
+                # sound.play_song((('E5', 'e'), ('C4', 'e')))
                 leds.set_color("LEFT", "BLACK")
                 leds.set_color("RIGHT", "BLACK")
                 remote_leds.set_color("LEFT", "BLACK")
@@ -438,5 +431,7 @@ try:
 
                 time.sleep(1)  # Wait for the motor thread to finish
                 break
+
+
 except KeyboardInterrupt:
     clean_shutdown()
