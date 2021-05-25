@@ -294,9 +294,9 @@ class MotorThread(threading.Thread):
                 pitch_motor.stop()
 
             if not spin_motor.is_running and spin_left:
-                spin_motor.on_to_position(slow_speed,spin_min*spin_ratio,True,False)  # Left
+                spin_motor.on_to_position(slow_speed,spin_min*spin_ratio, True, False)  # Left
             elif not spin_motor.is_running and spin_right:
-                spin_motor.on_to_position(slow_speed,spin_max*spin_ratio,True,False)  # Right
+                spin_motor.on_to_position(slow_speed,spin_max*spin_ratio, True, False)  # Right
             elif not spin_left and not spin_right and spin_motor.is_running:
                 spin_motor.stop()
 

@@ -60,7 +60,7 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
             motor.on(-self._speed, False)
 
         def checkMotorState(state):
-            print(state)
+            # print(state)
             if 'overloaded' in state or 'stalled' in state:
                 return True
 
