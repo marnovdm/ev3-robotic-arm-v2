@@ -19,6 +19,18 @@ class SmartMotorBase:
         return getattr(self._motor, name)
 
 
+class StaticRangeMotor(SmartMotorBase):
+    _minPos = 5
+    _maxPos = None
+    
+    def __init__(self, motor, maxPos, speed=10, name=None):
+        self._maxPos = maxPos
+        super().__init__(motor, speed, name)
+    
+    def calibrate(self):
+        raise NotImplemented
+
+
 class LimitedRangeMotor(SmartMotorBase):
     """ handle motors with a limited range of valid movements """
     _minPos = 5
@@ -46,6 +58,7 @@ class LimitedRangeMotor(SmartMotorBase):
 
         self._maxPos = self._motor.position - 5
         self._motor.on_to_position(self._speed, self.centerPos, True, True)
+        print('Motor {} found max {}'.format(self._name, self._maxPos))
 
     @property
     def maxPos(self):
@@ -88,6 +101,10 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
         self._maxPos = self._motor[1].position
         for motor in self._motor:
             motor.on_to_position(self._speed, self.centerPos, True, False)
+        
+        # cant wait here because of motor set, so let's at least give it 1 second
+        time.sleep(1)
+        print('Motor {} found max {}'.format(self._name, self._maxPos))
 
     def on_to_position(self, speed, position, brake, wait):
         for motor in self._motor:

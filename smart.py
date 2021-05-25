@@ -146,8 +146,8 @@ color_sensor.mode = ColorSensor.MODE_COL_COLOR
 # Primary EV3
 waist_motor = ColorSensorMotor(LargeMotor(
     OUTPUT_A), speed=40, name='waist', sensor=color_sensor)
-shoulder_control1 = LargeMotor(OUTPUT_B)
-shoulder_control2 = LargeMotor(OUTPUT_C)
+# shoulder_control1 = LargeMotor(OUTPUT_B)
+# shoulder_control2 = LargeMotor(OUTPUT_C)
 shoulder_motors = LimitedRangeMotorSet(
     [LargeMotor(OUTPUT_B), LargeMotor(OUTPUT_C)], speed=30, name='shoulder')
 elbow_motor = LimitedRangeMotor(LargeMotor(OUTPUT_D), speed=30, name='elbow')
@@ -156,9 +156,9 @@ elbow_motor = LimitedRangeMotor(LargeMotor(OUTPUT_D), speed=30, name='elbow')
 roll_motor = LimitedRangeMotor(remote_motor.MediumMotor(
     remote_motor.OUTPUT_A), speed=30, name='roll')
 pitch_motor = LimitedRangeMotor(remote_motor.MediumMotor(
-    remote_motor.OUTPUT_B), speed=30, name='pitch')
-spin_motor = LimitedRangeMotor(remote_motor.MediumMotor(
-    remote_motor.OUTPUT_C), speed=20, name='spin')
+    remote_motor.OUTPUT_B), speed=10, name='pitch')
+spin_motor = StaticRangeMotor(remote_motor.MediumMotor(
+    remote_motor.OUTPUT_C), maxPos=14*360, speed=20, name='spin')
 
 try:
     grabber_motor = LimitedRangeMotor(
@@ -215,7 +215,7 @@ def calibrate_motors():
     elbow_motor.calibrate()
     waist_motor.calibrate()
     roll_motor.calibrate()
-    pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
+    # pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
     if grabber_motor:
         grabber_motor.calibrate()
 
@@ -284,22 +284,22 @@ class MotorThread(threading.Thread):
 
             if not spin_motor.is_running and spin_left:
                 spin_motor.on_to_position(
-                    SLOW_SPEED, spin_min*spin_ratio, True, False)  # Left
+                    SLOW_SPEED, spin_motor.minPos, True, False)  # Left
             elif not spin_motor.is_running and spin_right:
                 spin_motor.on_to_position(
-                    SLOW_SPEED, spin_max*spin_ratio, True, False)  # Right
+                    SLOW_SPEED, spinMotor.maxPos, True, False)  # Right
             elif not spin_left and not spin_right and spin_motor.is_running:
                 spin_motor.stop()
 
             if grabber_motor:
                 if grabber_open:
                     grabber_motor.on_to_position(
-                        NORMAL_SPEED, grabber_max*grabber_ratio, True, True)  # Close
-                    grabber_motor.stop()
+                        NORMAL_SPEED, grabber_motor.maxPos, True, True)  # Close
+                    # grabber_motor.stop()
                 elif grabber_close:
                     grabber_motor.on_to_position(
-                        NORMAL_SPEED, grabber_min*grabber_ratio, True, True)  # Open
-                    grabber_motor.stop()
+                        NORMAL_SPEED, grabber_motor.minPos, True, True)  # Open
+                    # grabber_motor.stop()
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
 
