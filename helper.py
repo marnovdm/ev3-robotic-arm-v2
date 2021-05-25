@@ -154,7 +154,9 @@ class ColorSensorMotor(SmartMotorBase):
                 time.sleep(0.1)
 
         self._motor.reset()
-
+    
+    def centerPos(self):
+        return 0
 
 class TouchSensorMotor(SmartMotorBase):
     _sensor = None
