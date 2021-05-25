@@ -26,7 +26,8 @@ from helper import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor
 REMOTE_HOST = '10.42.0.3'
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s')
+logging.basicConfig(level=logging.INFO, stream=sys.stdout,
+                    format='%(message)s')
 # logging.getLogger().addHandler(logging.StreamHandler(sys.stderr))
 logger = logging.getLogger(__name__)
 
@@ -35,13 +36,15 @@ logger = logging.getLogger(__name__)
 def scale(val, src, dst):
     return (float(val - src[0]) / (src[1] - src[0])) * (dst[1] - dst[0]) + dst[0]
 
+
 def scale_stick(value, deadzone=100):
-    result = scale(value,(0,255),(-1000,1000))
-    
+    result = scale(value, (0, 255), (-1000, 1000))
+
     if deadzone and result < deadzone and result > -deadzone:
         result = 0
-        
+
     return result
+
 
 def clean_shutdown():
     logger.info('Shutting down...')
@@ -67,6 +70,8 @@ def clean_shutdown():
     logger.info('Shutdown completed.')
 
 # Reset motor positions to default
+
+
 def reset_motors():
     logger.info("Resetting motors...")
     waist_motor.reset()
@@ -82,18 +87,18 @@ def reset_motors():
 
 
 def back_to_start():
-    roll_motor.on_to_position(normal_speed,0,True,True)
-    pitch_motor.on_to_position(normal_speed,0,True,True)
-    spin_motor.on_to_position(normal_speed,0,True,False)
+    roll_motor.on_to_position(normal_speed, 0, True, True)
+    pitch_motor.on_to_position(normal_speed, 0, True, True)
+    spin_motor.on_to_position(normal_speed, 0, True, False)
 
     if grabber_motor:
-        grabber_motor.on_to_position(normal_speed,0,True,True)
-    
-    elbow_motor.on_to_position(slow_speed,0,True,True)
+        grabber_motor.on_to_position(normal_speed, 0, True, True)
+
+    elbow_motor.on_to_position(slow_speed, 0, True, True)
     shoulder_motors.on_to_position(slow_speed, 0, True, True)
     # shoulder_control1.on_to_position(slow_speed,0,True,True)
     # shoulder_control2.on_to_position(slow_speed,0,True,True)
-    waist_motor.on_to_position(fast_speed,0,True,True)
+    waist_motor.on_to_position(fast_speed, 0, True, True)
 
 
 ## Initial setup ##
@@ -104,7 +109,8 @@ def back_to_start():
 # Use the hostname or IP address of the ev3dev device.
 # If this fails, verify your IP connectivty via ``ping X.X.X.X``
 logger.info("Connecting RPyC to {}...".format(REMOTE_HOST))
-conn = rpyc.classic.connect(REMOTE_HOST) # change this IP address for your slave EV3 brick
+# change this IP address for your slave EV3 brick
+conn = rpyc.classic.connect(REMOTE_HOST)
 #remote_ev3 = conn.modules['ev3dev.ev3']
 remote_motor = conn.modules['ev3dev2.motor']
 remote_led = conn.modules['ev3dev2.led']
@@ -118,8 +124,8 @@ devices = [InputDevice(fn) for fn in evdev.list_devices()]
 #     logger.info("{}".format(device.name))
 
 ps4gamepad = devices[0].fn      # PS4 gamepad
-#ps4motion = devices[1].fn      # PS4 accelerometer
-#ps4touchpad = devices[2].fn    # PS4 touchpad
+# ps4motion = devices[1].fn      # PS4 accelerometer
+# ps4touchpad = devices[2].fn    # PS4 touchpad
 
 gamepad = InputDevice(ps4gamepad)
 
@@ -135,19 +141,25 @@ color_sensor = ColorSensor(INPUT_4)
 color_sensor.mode = ColorSensor.MODE_COL_COLOR
 
 # Primary EV3
-waist_motor = ColorSensorMotor(LargeMotor(OUTPUT_A), speed=30, name='waist', sensor=color_sensor)
+waist_motor = ColorSensorMotor(LargeMotor(
+    OUTPUT_A), speed=30, name='waist', sensor=color_sensor)
 shoulder_control1 = LargeMotor(OUTPUT_B)
 shoulder_control2 = LargeMotor(OUTPUT_C)
-shoulder_motors = LimitedRangeMotorSet([LargeMotor(OUTPUT_B), LargeMotor(OUTPUT_C)], speed=20, name='shoulder')
+shoulder_motors = LimitedRangeMotorSet(
+    [LargeMotor(OUTPUT_B), LargeMotor(OUTPUT_C)], speed=20, name='shoulder')
 elbow_motor = LimitedRangeMotor(LargeMotor(OUTPUT_D), speed=20, name='elbow')
 
 # Secondary EV3
-roll_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_A), speed=20, name='roll')
-pitch_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_B), speed=20, name='pitch')
-spin_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_C), speed=20, name='spin')
+roll_motor = LimitedRangeMotor(remote_motor.MediumMotor(
+    remote_motor.OUTPUT_A), speed=20, name='roll')
+pitch_motor = LimitedRangeMotor(remote_motor.MediumMotor(
+    remote_motor.OUTPUT_B), speed=20, name='pitch')
+spin_motor = LimitedRangeMotor(remote_motor.MediumMotor(
+    remote_motor.OUTPUT_C), speed=20, name='spin')
 
 try:
-    grabber_motor = LimitedRangeMotor(remote_motor.MediumMotor(remote_motor.OUTPUT_D))
+    grabber_motor = LimitedRangeMotor(
+        remote_motor.MediumMotor(remote_motor.OUTPUT_D))
     logger.info("Grabber motor detected!")
 except DeviceNotFound:
     logger.info("Grabber motor not detected - running without it...")
@@ -211,10 +223,11 @@ grabber_close = False
 # We are running!
 running = True
 
+
 def calibrate_motors():
     logger.info('Calibrating motors...')
-    
-    waist_motor.calibrate()    
+
+    waist_motor.calibrate()
     shoulder_motors.calibrate()
     elbow_motor.calibrate()
     roll_motor.calibrate()
@@ -237,75 +250,87 @@ class MotorThread(threading.Thread):
         leds.set_color("RIGHT", "GREEN")
         remote_leds.set_color("LEFT", "GREEN")
         remote_leds.set_color("RIGHT", "GREEN")
-        
+
         logger.info("Starting main loop...")
         while running:
             # logger.debug('{},{},{},{},{},{},{},{}'.format(turning_left, turning_right, roll_left, roll_right, pitch_up, pitch_down, spin_left, spin_right))
             if shoulder_speed > 0 and shoulder_control1.position > ((shoulder_max*shoulder_ratio)+100):
-                logger.info('shoulder motor up')
+                # logger.info('shoulder motor up')
                 # logger.info('Running motors at {}'.format(-normal_speed))
-                logger.info((shoulder_speed/10)*-1)
+                # logger.info((shoulder_speed/10)*-1)
                 shoulder_motors.on((shoulder_speed / 10) * -1)
                 # shoulder_motors.on(-normal_speed,-normal_speed)
             elif shoulder_speed < 0 and shoulder_control1.position < ((shoulder_min*shoulder_ratio)-100):
-                logger.info('shoulder motor down')
-                logger.info((shoulder_speed/10)*-1)
+                # logger.info('shoulder motor down')
+                # logger.info((shoulder_speed/10)*-1)
                 # shoulder_motors.on(shoulder_speed/10, shoulder_speed/10)
                 # logger.info('Running motors at {}'.format(normal_speed))
                 shoulder_motors.on((shoulder_speed/10)*-1)
             elif shoulder_motors.is_running:
-                logger.info('shoulder motor stop')
+                # logger.info('shoulder motor stop')
                 shoulder_motors.stop()
 
             if not elbow_motor.is_running and upward_speed > 0:
-                logger.info(upward_speed)
-                logger.info('elbow position {} calculated target position {}'.format(elbow_motor.position, elbow_max*elbow_ratio))
-                elbow_motor.on_to_position(upward_speed / 10, elbow_max*elbow_ratio, True, False)  # Up
+                # logger.info(upward_speed)
+                # logger.info('elbow position {} calculated target position {}'.format(
+                #     elbow_motor.position, elbow_max*elbow_ratio))
+                elbow_motor.on(upward_speed / 10)  # Up
             elif not elbow_motor.is_running and upward_speed < 0:
-                logger.info('elbow position {} calculated target position {}'.format(elbow_motor.position, elbow_min*elbow_ratio))
-                logger.info(upward_speed)
-                elbow_motor.on_to_position(upward_speed / 10, elbow_min*elbow_ratio, True, False)  # Down
+                # logger.info('elbow position {} calculated target position {}'.format(
+                #     elbow_motor.position, elbow_min*elbow_ratio))
+                # logger.info(upward_speed)
+                elbow_motor.on(upward_speed / 10)  # Down
             elif upward_speed == 0 and elbow_motor.is_running:
-                logger.info('elbow motor stop')
+                # logger.info('elbow motor stop')
                 elbow_motor.stop()
 
             if not waist_motor.is_running and turning_left:
                 # logger.info('moving left...')
-                waist_motor.on_to_position(fast_speed,waist_min*waist_ratio,True,False)  # Left
+                waist_motor.on_to_position(
+                    fast_speed, waist_min*waist_ratio, True, False)  # Left
             elif not waist_motor.is_running and turning_right:
                 # logger.info('moving right...')
-                waist_motor.on_to_position(fast_speed,waist_max*waist_ratio,True,False) # Right
+                waist_motor.on_to_position(
+                    fast_speed, waist_max*waist_ratio, True, False)  # Right
             elif not turning_left and not turning_right and waist_motor.is_running:
                 # logger.info('stopped moving left/right')
                 waist_motor.stop()
 
             if not roll_motor.is_running and roll_left:
-                roll_motor.on_to_position(slow_speed,roll_min*roll_ratio,True,False)  # Left
+                roll_motor.on_to_position(
+                    slow_speed, roll_min*roll_ratio, True, False)  # Left
             elif not roll_motor.is_running and roll_right:
-                roll_motor.on_to_position(slow_speed,roll_max*roll_ratio,True,False)  # Right
+                roll_motor.on_to_position(
+                    slow_speed, roll_max*roll_ratio, True, False)  # Right
             elif not roll_left and not roll_right and roll_motor.is_running:
                 roll_motor.stop()
 
             if not pitch_motor.is_running and pitch_up:
-                pitch_motor.on_to_position(slow_speed,pitch_max*pitch_ratio,True,False)  # Up
+                pitch_motor.on_to_position(
+                    slow_speed, pitch_max*pitch_ratio, True, False)  # Up
             elif not pitch_motor.is_running and pitch_down:
-                pitch_motor.on_to_position(slow_speed,pitch_min*pitch_ratio,True,False)  # Down
+                pitch_motor.on_to_position(
+                    slow_speed, pitch_min*pitch_ratio, True, False)  # Down
             elif not pitch_up and not pitch_down and pitch_motor.is_running:
                 pitch_motor.stop()
 
             if not spin_motor.is_running and spin_left:
-                spin_motor.on_to_position(slow_speed,spin_min*spin_ratio, True, False)  # Left
+                spin_motor.on_to_position(
+                    slow_speed, spin_min*spin_ratio, True, False)  # Left
             elif not spin_motor.is_running and spin_right:
-                spin_motor.on_to_position(slow_speed,spin_max*spin_ratio, True, False)  # Right
+                spin_motor.on_to_position(
+                    slow_speed, spin_max*spin_ratio, True, False)  # Right
             elif not spin_left and not spin_right and spin_motor.is_running:
                 spin_motor.stop()
 
             if grabber_motor:
                 if grabber_open:
-                    grabber_motor.on_to_position(normal_speed,grabber_max*grabber_ratio,True,True)  # Close
+                    grabber_motor.on_to_position(
+                        normal_speed, grabber_max*grabber_ratio, True, True)  # Close
                     grabber_motor.stop()
                 elif grabber_close:
-                    grabber_motor.on_to_position(normal_speed,grabber_min*grabber_ratio,True,True)  # Open
+                    grabber_motor.on_to_position(
+                        normal_speed, grabber_min*grabber_ratio, True, True)  # Open
                     grabber_motor.stop()
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
@@ -323,11 +348,11 @@ try:
             # logger.info(event)
             if event.code == 0:  # Left stick X-axis
                 shoulder_speed = scale_stick(event.value)
-            #if event.code == 1:  # Left stick Y-axis
+            # if event.code == 1:  # Left stick Y-axis
             #    forward_side_speed = scale_stick(event.value)
             elif event.code == 3:  # Right stick X-axis
                 upward_speed = -scale_stick(event.value)
-            #if event.code == 4:  # Right stick Y-axis
+            # if event.code == 4:  # Right stick Y-axis
             #    upward_side_speed = scale_stick(event.value)
             # else:
             #     logger.info('no action')
@@ -341,7 +366,7 @@ try:
                 if event.value == 1 and not turning_left:
                     turning_right = False
                     turning_left = True
-                    #logger.info('LEFT')
+                    # logger.info('LEFT')
                     # waist_motor.on(fast_speed,True,False) #Left
                 elif event.value == 0 and turning_left:
                     turning_left = False
@@ -352,7 +377,7 @@ try:
                 if event.value == 1 and not turning_right:
                     turning_left = False
                     turning_right = True
-                    #logger.info('RIGHT')
+                    # logger.info('RIGHT')
                     # waist_motor.on(-fast_speed,True,False) #Right
                 elif event.value == 0 and turning_right:
                     # waist_motor.stop()
@@ -411,7 +436,7 @@ try:
                         grabber_close = False
             elif event.code == 314 and event.value == 1:  # Share
                 reset_motors()
-                
+
             elif event.code == 315 and event.value == 1:  # Options
                 # Reset
                 back_to_start()
