@@ -90,18 +90,18 @@ def reset_motors():
 
 
 def back_to_start():
-    roll_motor.on_to_position(NORMAL_SPEED, 0, True, True)
+    roll_motor.on_to_position(NORMAL_SPEED, roll_motor.centerPos, True, True)
     pitch_motor.on_to_position(NORMAL_SPEED, 0, True, True)
     spin_motor.on_to_position(NORMAL_SPEED, 0, True, False)
 
     if grabber_motor:
-        grabber_motor.on_to_position(NORMAL_SPEED, 0, True, True)
+        grabber_motor.on_to_position(NORMAL_SPEED, grabber_motor.centerPos, True, True)
 
-    elbow_motor.on_to_position(SLOW_SPEED, 0, True, True)
-    shoulder_motors.on_to_position(SLOW_SPEED, 0, True, True)
+    elbow_motor.on_to_position(SLOW_SPEED, elbow_motor.centerPos, True, True)
+    shoulder_motors.on_to_position(SLOW_SPEED, shoulder_motors.centerPos, True, True)
     # shoulder_control1.on_to_position(SLOW_SPEED,0,True,True)
     # shoulder_control2.on_to_position(SLOW_SPEED,0,True,True)
-    waist_motor.on_to_position(FAST_SPEED, 0, True, True)
+    waist_motor.on_to_position(FAST_SPEED, waist_motor.centerPos, True, True)
 
 
 ## Initial setup ##

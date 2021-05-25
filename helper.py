@@ -29,7 +29,18 @@ class StaticRangeMotor(SmartMotorBase):
     
     def calibrate(self):
         raise NotImplemented
+    
+    @property
+    def maxPos(self):
+        return self._maxPos
 
+    @property
+    def minPos(self):
+        return self._minPos
+    
+    @property
+    def centerPos(self):
+        return (self._maxPos - self._minPos) / 2
 
 class LimitedRangeMotor(SmartMotorBase):
     """ handle motors with a limited range of valid movements """
