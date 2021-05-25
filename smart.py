@@ -210,7 +210,7 @@ def calibrate_motors():
         waist_motor.reset()
     logger.info('OK')
     
-    
+    """
     logger.info('shoulder motor, finding minimum...')
     shoulder_motor.on(-20, False)
     shoulder_control1.wait_until('stalled')
@@ -319,7 +319,7 @@ class MotorThread(threading.Thread):
 
 
 try:
-    # calibrate_motors()
+    calibrate_motors()
 
     motor_thread = MotorThread()
     motor_thread.setDaemon(True)
