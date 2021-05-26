@@ -19,7 +19,7 @@ import time
 
 import evdev
 import rpyc
-# from signal import SIGINT, SIGTERM
+from signal import signal, SIGINT, SIGTERM
 from ev3dev2 import DeviceNotFound
 from ev3dev2.led import Leds
 from ev3dev2.sensor import INPUT_4
@@ -31,6 +31,7 @@ from evdev import InputDevice, categorize, ecodes
 
 from smart_motor import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor, StaticRangeMotor
 from math_helper import scale, scale_stick
+
 
 # Config
 REMOTE_HOST = '10.42.0.3'
@@ -48,7 +49,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout,
 logger = logging.getLogger(__name__)
 
 
-def clean_shutdown():
+def clean_shutdown(signal_received=None, frame=None):
     """ make sure all motors are stopped when stopping robot arm """
     logger.info('Shutting down...')
     running = False
@@ -71,6 +72,10 @@ def clean_shutdown():
         grabber_motor.stop()
 
     logger.info('Shutdown completed.')
+
+
+# Clean shutdown on CTRL+C
+signal(SIGINT, clean_shutdown)
 
 
 def reset_motors():
@@ -138,7 +143,6 @@ remote_leds = remote_led.Leds()
 # Sound
 # sound = Sound()
 
-
 # Primary EV3
 # Sensors
 color_sensor = ColorSensor(INPUT_4)
@@ -168,7 +172,7 @@ except DeviceNotFound:
     logger.info("Grabber motor not detected - running without it...")
     grabber_motor = False
 
-reset_motors()
+# reset_motors()
 
 # Ratios
 pitch_ratio = 5
@@ -212,6 +216,7 @@ def calibrate_motors():
     # pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
     if grabber_motor:
         grabber_motor.calibrate()
+
 
 class MotorThread(threading.Thread):
     def __init__(self):
@@ -307,109 +312,105 @@ class MotorThread(threading.Thread):
                     grabber_motor.stop()
 
 
-try:
-    calibrate_motors()
+calibrate_motors()
 
-    motor_thread = MotorThread()
-    motor_thread.setDaemon(True)
-    motor_thread.start()
+motor_thread = MotorThread()
+motor_thread.setDaemon(True)
+motor_thread.start()
 
-    for event in gamepad.read_loop():  # this loops infinitely
-        if event.type == 3:  # stick input
-            if event.code == 0:  # Left stick X-axis
-                shoulder_speed = scale_stick(event.value, invert=True)
-            elif event.code == 3:  # Right stick X-axis
-                elbow_speed = -scale_stick(event.value, invert=True)
+for event in gamepad.read_loop():  # this loops infinitely
+    if event.type == 3:  # stick input
+        if event.code == 0:  # Left stick X-axis
+            shoulder_speed = scale_stick(event.value, invert=True)
+        elif event.code == 3:  # Right stick X-axis
+            elbow_speed = -scale_stick(event.value, invert=True)
 
-        elif event.type == 1:  # button input
+    elif event.type == 1:  # button input
 
-            if event.code == 310:  # L1
-                if event.value == 1 and not waist_left:
-                    waist_right = False
-                    waist_left = True
-                elif event.value == 0 and waist_left:
-                    waist_left = False
+        if event.code == 310:  # L1
+            if event.value == 1 and not waist_left:
+                waist_right = False
+                waist_left = True
+            elif event.value == 0 and waist_left:
+                waist_left = False
 
-            elif event.code == 311:  # R1
-                if event.value == 1 and not waist_right:
-                    waist_left = False
-                    waist_right = True
-                elif event.value == 0 and waist_right:
-                    waist_right = False
+        elif event.code == 311:  # R1
+            if event.value == 1 and not waist_right:
+                waist_left = False
+                waist_right = True
+            elif event.value == 0 and waist_right:
+                waist_right = False
 
-            elif event.code == 308:  # Square
-                if event.value == 1:
-                    roll_right = False
-                    roll_left = True
-                elif event.value == 0:
-                    roll_left = False
+        elif event.code == 308:  # Square
+            if event.value == 1:
+                roll_right = False
+                roll_left = True
+            elif event.value == 0:
+                roll_left = False
 
-            elif event.code == 305:  # Circle
-                if event.value == 1:
-                    roll_left = False
-                    roll_right = True
-                elif event.value == 0:
-                    roll_right = False
+        elif event.code == 305:  # Circle
+            if event.value == 1:
+                roll_left = False
+                roll_right = True
+            elif event.value == 0:
+                roll_right = False
 
-            elif event.code == 307:  # Triangle
-                if event.value == 1:
-                    pitch_down = False
-                    pitch_up = True
-                elif event.value == 0:
-                    pitch_up = False
+        elif event.code == 307:  # Triangle
+            if event.value == 1:
+                pitch_down = False
+                pitch_up = True
+            elif event.value == 0:
+                pitch_up = False
 
-            elif event.code == 304:  # X
-                if event.value == 1:
-                    pitch_up = False
-                    pitch_down = True
-                elif event.value == 0:
-                    pitch_down = False
+        elif event.code == 304:  # X
+            if event.value == 1:
+                pitch_up = False
+                pitch_down = True
+            elif event.value == 0:
+                pitch_down = False
 
-            elif event.code == 312:  # L2
-                if event.value == 1:
-                    spin_right = False
-                    spin_left = True
-                elif event.value == 0:
-                    spin_left = False
+        elif event.code == 312:  # L2
+            if event.value == 1:
+                spin_right = False
+                spin_left = True
+            elif event.value == 0:
+                spin_left = False
 
-            elif event.code == 313:  # R2
-                if event.value == 1:
-                    spin_left = False
-                    spin_right = True
-                elif event.value == 0:
-                    spin_right = False
+        elif event.code == 313:  # R2
+            if event.value == 1:
+                spin_left = False
+                spin_right = True
+            elif event.value == 0:
+                spin_right = False
 
-            elif event.code == 318:  # R3
-                if event.value == 1:
-                    if grabber_open:
-                        grabber_open = False
-                        grabber_close = True
-                    else:
-                        grabber_open = True
-                        grabber_close = False
-            
-            elif event.code == 314 and event.value == 1:  # Share
-                reset_motors()
+        elif event.code == 318:  # R3
+            if event.value == 1:
+                if grabber_open:
+                    grabber_open = False
+                    grabber_close = True
+                else:
+                    grabber_open = True
+                    grabber_close = False
+        
+        elif event.code == 314 and event.value == 1:  # Share
+            reset_motors()
 
-            elif event.code == 315 and event.value == 1:  # Options
-                # Reset
-                motors_to_center()
+        elif event.code == 315 and event.value == 1:  # Options
+            # Reset
+            motors_to_center()
 
-            elif event.code == 316 and event.value == 1:  # PS
-                logger.info("Engine stopping!")
-                running = False
+        elif event.code == 316 and event.value == 1:  # PS
+            logger.info("Engine stopping!")
+            running = False
 
-                # Reset
-                motors_to_center()
+            # Reset
+            motors_to_center()
 
-                # sound.play_song((('E5', 'e'), ('C4', 'e')))
-                leds.set_color("LEFT", "BLACK")
-                leds.set_color("RIGHT", "BLACK")
-                remote_leds.set_color("LEFT", "BLACK")
-                remote_leds.set_color("RIGHT", "BLACK")
+            # sound.play_song((('E5', 'e'), ('C4', 'e')))
+            leds.set_color("LEFT", "BLACK")
+            leds.set_color("RIGHT", "BLACK")
+            remote_leds.set_color("LEFT", "BLACK")
+            remote_leds.set_color("RIGHT", "BLACK")
 
-                time.sleep(1)  # Wait for the motor thread to finish
-                break
-
-except KeyboardInterrupt:
-    clean_shutdown()
+            time.sleep(1)  # Wait for the motor thread to finish
+            break
