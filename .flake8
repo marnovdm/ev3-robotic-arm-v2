@@ -24,8 +24,6 @@ exclude=
     __pycache__,
     # ignore git repo dir
     .git/,
-    # ignore virtual env
-    virtual_env/,
 
 max-complexity=10
 statistics=True
