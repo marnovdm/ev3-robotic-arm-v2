@@ -113,7 +113,7 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
         for motor in self._motor:
             motor.on_to_position(self._speed, self.centerPos, True, False)
         
-        # cant wait here because of motor set, so let's at least give it 1 second
+        # cant wait here because of motor set, so let's at least give it some time
         time.sleep(1)
         print('Motor {} found max {}'.format(self._name, self._maxPos))
 

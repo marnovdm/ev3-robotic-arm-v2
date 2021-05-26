@@ -213,9 +213,9 @@ running = True
 def calibrate_motors():
     logger.info('Calibrating motors...')
     shoulder_motors.calibrate()
+    roll_motor.calibrate()
     elbow_motor.calibrate()
     waist_motor.calibrate()
-    roll_motor.calibrate()
     # pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
     if grabber_motor:
         grabber_motor.calibrate()
@@ -288,7 +288,7 @@ class MotorThread(threading.Thread):
                     SLOW_SPEED, spin_motor.minPos, True, False)  # Left
             elif not spin_motor.is_running and spin_right:
                 spin_motor.on_to_position(
-                    SLOW_SPEED, spinMotor.maxPos, True, False)  # Right
+                    SLOW_SPEED, spin_motor.maxPos, True, False)  # Right
             elif not spin_left and not spin_right and spin_motor.is_running:
                 spin_motor.stop()
 
