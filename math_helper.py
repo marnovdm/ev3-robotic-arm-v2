@@ -9,7 +9,7 @@ def scale_stick(value, deadzone=10, scale_to=80, invert=False):
 
     if deadzone and result < deadzone and result > -deadzone:
         result = 0
-    
+
     if invert:
         result *= -1
 

@@ -21,6 +21,7 @@ VALID_DEADZONE_INPUT = [
     (128, 0, 0),
 ]
 
+
 class TestMathHelper(unittest.TestCase):
 
     def test_scale_stick_default(self):
@@ -32,7 +33,7 @@ class TestMathHelper(unittest.TestCase):
         for input_set in VALID_DEFAULT_INPUT:
             with self.subTest(data=input_set):
                 self.assertEqual(scale_stick(input_set[0], invert=True), -input_set[1])
-    
+
     def test_scale_stick_deadzone(self):
         for input_set in VALID_DEADZONE_INPUT:
             with self.subTest(data=input_set):

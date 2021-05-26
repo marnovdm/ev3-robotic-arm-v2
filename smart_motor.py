@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import time
 
+
 class SmartMotorBase:
     """ base class for handling motors """
     _motor = None
@@ -24,11 +25,11 @@ class SmartMotorBase:
     @property
     def minPos(self):
         return self._minPos
-    
+
     @property
     def centerPos(self):
         return (self._maxPos - self._minPos) / 2
-    
+
     def __getattr__(self, name):
         return getattr(self._motor, name)
 
@@ -39,9 +40,9 @@ class StaticRangeMotor(SmartMotorBase):
         self._maxPos = maxPos / 2
         self._minPos = (maxPos / 2) * -1
         super().__init__(motor, speed, name)
-    
+
     def calibrate(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class LimitedRangeMotor(SmartMotorBase):
@@ -74,6 +75,7 @@ class LimitedRangeMotor(SmartMotorBase):
 
 class LimitedRangeMotorSet(LimitedRangeMotor):
     """ handle a set of motors with limited range of valid movements """
+
     def calibrate(self):
         # super().calibrate()
         for motor in self._motor:
@@ -100,14 +102,15 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
         self._maxPos = self._motor[1].position
         for motor in self._motor:
             motor.on_to_position(self._speed, self.centerPos, True, False)
-        
+
         # cant wait here because of motor set, so let's at least give it some time
         time.sleep(1)
         print('Motor {} found max {}'.format(self._name, self._maxPos))
 
     def on_to_position(self, speed, position, brake, wait):
         for motor in self._motor:
-            motor.on_to_position(speed, position, brake, False)  # @TODO hardcoded no-waiting because of dual motor setup
+            # @TODO hardcoded no-waiting because of dual motor setup
+            motor.on_to_position(speed, position, brake, False)
 
     def reset(self):
         for motor in self._motor:
@@ -145,10 +148,11 @@ class ColorSensorMotor(SmartMotorBase):
                 time.sleep(0.1)
 
         self._motor.reset()
-    
+
     @property
     def centerPos(self):
         return 0
+
 
 class TouchSensorMotor(SmartMotorBase):
     _sensor = None

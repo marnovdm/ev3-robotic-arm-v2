@@ -8,7 +8,7 @@
 # - proportional control for some motors
 # - auto calibration for allowed motor ranges
 # - code cleanup / simplify
-# 
+#
 __author__ = 'Nino Guba'
 
 import logging
@@ -70,10 +70,12 @@ def motors_to_center():
     spin_motor.on_to_position(NORMAL_SPEED, spin_motor.centerPos, True, False)
 
     if grabber_motor:
-        grabber_motor.on_to_position(NORMAL_SPEED, grabber_motor.centerPos, True, True)
+        grabber_motor.on_to_position(
+            NORMAL_SPEED, grabber_motor.centerPos, True, True)
 
     elbow_motor.on_to_position(SLOW_SPEED, elbow_motor.centerPos, True, True)
-    shoulder_motors.on_to_position(SLOW_SPEED, shoulder_motors.centerPos, True, True)
+    shoulder_motors.on_to_position(
+        SLOW_SPEED, shoulder_motors.centerPos, True, True)
     # shoulder_control1.on_to_position(SLOW_SPEED,0,True,True)
     # shoulder_control2.on_to_position(SLOW_SPEED,0,True,True)
     waist_motor.on_to_position(FAST_SPEED, waist_motor.centerPos, True, True)
@@ -133,7 +135,7 @@ roll_motor = LimitedRangeMotor(remote_motor.MediumMotor(
 pitch_motor = LimitedRangeMotor(remote_motor.MediumMotor(
     remote_motor.OUTPUT_B), speed=10, name='pitch')
 spin_motor = StaticRangeMotor(remote_motor.MediumMotor(
-    remote_motor.OUTPUT_C), maxPos=14*360, speed=20, name='spin')
+    remote_motor.OUTPUT_C), maxPos=14 * 360, speed=20, name='spin')
 
 try:
     grabber_motor = LimitedRangeMotor(
@@ -237,18 +239,22 @@ class MotorThread(threading.Thread):
             # Proportional control
             if shoulder_speed != 0:
                 if shoulder_speed > 0:
-                    shoulder_motors.on_to_position(shoulder_speed, shoulder_motors.minPos, True, False)
+                    shoulder_motors.on_to_position(
+                        shoulder_speed, shoulder_motors.minPos, True, False)
                 else:
-                    shoulder_motors.on_to_position(shoulder_speed, shoulder_motors.maxPos, True, False)
+                    shoulder_motors.on_to_position(
+                        shoulder_speed, shoulder_motors.maxPos, True, False)
             elif shoulder_motors.is_running:
                 shoulder_motors.stop()
 
             # Proportional control
             if elbow_speed != 0:
                 if elbow_speed > 0:
-                    elbow_motor.on_to_position(elbow_speed, elbow_motor.minPos, True, False)
+                    elbow_motor.on_to_position(
+                        elbow_speed, elbow_motor.minPos, True, False)
                 else:
-                    elbow_motor.on_to_position(elbow_speed, elbow_motor.maxPos, True, False)
+                    elbow_motor.on_to_position(
+                        elbow_speed, elbow_motor.maxPos, True, False)
             elif elbow_motor.is_running:
                 elbow_motor.stop()
 
@@ -294,7 +300,7 @@ class MotorThread(threading.Thread):
                     SLOW_SPEED, spin_motor.maxPos, True, False)  # Right
             elif not spin_left and not spin_right and spin_motor.is_running:
                 spin_motor.stop()
-            
+
             # on/off control
             if grabber_motor:
                 if grabber_open:
@@ -391,7 +397,7 @@ for event in gamepad.read_loop():  # this loops infinitely
                 else:
                     grabber_open = True
                     grabber_close = False
-        
+
         elif event.code == 314 and event.value == 1:  # Share
             reset_motors()
 
