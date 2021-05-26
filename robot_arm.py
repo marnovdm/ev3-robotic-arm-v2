@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+# ev3-robot-arm 6dof, originally by Nino Guba.
+# v2 improved by Marno van der Molen;
+# - bugfixes
+# - don't require grabber attachment to run
+# - more debug output for troubleshooting
+# - improved gamepadd responsiveness
+# - proportional control for some motors
+# - auto calibration for allowed motor ranges
+# - code cleanup / simplify
+# 
 __author__ = 'Nino Guba'
 
 import logging
@@ -19,8 +29,8 @@ from ev3dev2.motor import (OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, LargeMotor,
 # from ev3dev2.sound import Sound
 from evdev import InputDevice, categorize, ecodes
 
-from helper import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor, StaticRangeMotor
-
+from smart_motor import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor, StaticRangeMotor
+from math_helper import scale, scale_stick
 
 # Config
 REMOTE_HOST = '10.42.0.3'
@@ -35,28 +45,11 @@ SLOW_SPEED = 25
 # Setup logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                     format='%(message)s')
-# logging.getLogger().addHandler(logging.StreamHandler(sys.stderr))
 logger = logging.getLogger(__name__)
 
 
-## Some helpers ##
-def scale(val, src, dst):
-    return (float(val - src[0]) / (src[1] - src[0])) * (dst[1] - dst[0]) + dst[0]
-
-
-def scale_stick(value, deadzone=10, scale_to=80, invert=False):
-    result = scale(value, (0, 255), (-scale_to, scale_to))
-
-    if deadzone and result < deadzone and result > -deadzone:
-        result = 0
-    
-    if invert:
-        result *= -1
-
-    return result
-
-
 def clean_shutdown():
+    """ make sure all motors are stopped when stopping robot arm """
     logger.info('Shutting down...')
     running = False
     logger.info('waist..')
@@ -79,14 +72,11 @@ def clean_shutdown():
 
     logger.info('Shutdown completed.')
 
-# Reset motor positions to default
-
 
 def reset_motors():
+    """ reset motor positions to default """
     logger.info("Resetting motors...")
     waist_motor.reset()
-    # shoulder_control1.reset()
-    # shoulder_control2.reset()
     shoulder_motors.reset()
     elbow_motor.reset()
     roll_motor.reset()
@@ -96,7 +86,9 @@ def reset_motors():
         grabber_motor.reset()
 
 
-def back_to_start():
+def motors_to_center():
+    """ move all motors to their default position """
+
     roll_motor.on_to_position(NORMAL_SPEED, roll_motor.centerPos, True, True)
     pitch_motor.on_to_position(NORMAL_SPEED, 0, True, True)
     spin_motor.on_to_position(NORMAL_SPEED, 0, True, False)
@@ -401,14 +393,14 @@ try:
 
             elif event.code == 315 and event.value == 1:  # Options
                 # Reset
-                back_to_start()
+                motors_to_center()
 
             elif event.code == 316 and event.value == 1:  # PS
                 logger.info("Engine stopping!")
                 running = False
 
                 # Reset
-                back_to_start()
+                motors_to_center()
 
                 # sound.play_song((('E5', 'e'), ('C4', 'e')))
                 leds.set_color("LEFT", "BLACK")

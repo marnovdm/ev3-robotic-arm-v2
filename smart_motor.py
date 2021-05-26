@@ -35,7 +35,9 @@ class SmartMotorBase:
 
 class StaticRangeMotor(SmartMotorBase):
     def __init__(self, motor, maxPos, speed=10, name=None):
-        self._maxPos = maxPos
+        # let's assume we're in center upon init and fake min and max to allow moving both ways on start
+        self._maxPos = maxPos / 2
+        self._minPos = (maxPos / 2) * -1
         super().__init__(motor, speed, name)
     
     def calibrate(self):
