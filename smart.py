@@ -146,20 +146,21 @@ remote_leds = remote_led.Leds()
 # Sound
 # sound = Sound()
 
+
+# Primary EV3
 # Sensors
 color_sensor = ColorSensor(INPUT_4)
 color_sensor.mode = ColorSensor.MODE_COL_COLOR
 
-# Primary EV3
+# Motors
 waist_motor = ColorSensorMotor(LargeMotor(
-    OUTPUT_A), speed=40, name='waist', sensor=color_sensor)
-# shoulder_control1 = LargeMotor(OUTPUT_B)
-# shoulder_control2 = LargeMotor(OUTPUT_C)
+    OUTPUT_A), speed=40, name='waist', sensor=color_sensor, color=5)  # 5 = red
 shoulder_motors = LimitedRangeMotorSet(
     [LargeMotor(OUTPUT_B), LargeMotor(OUTPUT_C)], speed=30, name='shoulder')
 elbow_motor = LimitedRangeMotor(LargeMotor(OUTPUT_D), speed=30, name='elbow')
 
 # Secondary EV3
+# Motors
 roll_motor = LimitedRangeMotor(remote_motor.MediumMotor(
     remote_motor.OUTPUT_A), speed=30, name='roll')
 pitch_motor = LimitedRangeMotor(remote_motor.MediumMotor(
@@ -195,8 +196,8 @@ shoulder_speed = 0
 elbow_speed = 0
 
 # State variables
-turning_left = False
-turning_right = False
+waist_left = False
+waist_right = False
 roll_left = False
 roll_right = False
 pitch_up = False
@@ -239,6 +240,7 @@ class MotorThread(threading.Thread):
 
         logger.info("Starting main loop...")
         while running:
+            # Proportional control
             if shoulder_speed != 0:
                 if shoulder_speed > 0:
                     shoulder_motors.on_to_position(shoulder_speed, shoulder_motors.minPos, True, False)
@@ -247,6 +249,7 @@ class MotorThread(threading.Thread):
             elif shoulder_motors.is_running:
                 shoulder_motors.stop()
 
+            # Proportional control
             if elbow_speed != 0:
                 if elbow_speed > 0:
                     elbow_motor.on_to_position(elbow_speed, elbow_motor.minPos, True, False)
@@ -255,16 +258,18 @@ class MotorThread(threading.Thread):
             elif elbow_motor.is_running:
                 elbow_motor.stop()
 
-            if not waist_motor.is_running and turning_left:
+            # on/off control
+            if not waist_motor.is_running and waist_left:
                 # logger.info('moving left...')
                 waist_motor.on(-FAST_SPEED, False)  # Left
-            elif not waist_motor.is_running and turning_right:
+            elif not waist_motor.is_running and waist_right:
                 # logger.info('moving right...')
                 waist_motor.on(FAST_SPEED, False)  # Right
-            elif not turning_left and not turning_right and waist_motor.is_running:
+            elif not waist_left and not waist_right and waist_motor.is_running:
                 # logger.info('stopped moving left/right')
                 waist_motor.stop()
 
+            # on/off control
             if not roll_motor.is_running and roll_left:
                 roll_motor.on_to_position(
                     SLOW_SPEED, roll_motor.minPos, True, False)  # Left
@@ -274,15 +279,19 @@ class MotorThread(threading.Thread):
             elif not roll_left and not roll_right and roll_motor.is_running:
                 roll_motor.stop()
 
+            # on/off control
             if not pitch_motor.is_running and pitch_up:
-                pitch_motor.on_to_position(
-                    SLOW_SPEED, pitch_max*pitch_ratio, True, False)  # Up
+                # pitch_motor.on_to_position(
+                #     SLOW_SPEED, pitch_motor.maxPos, True, False)  # Up
+                pitch_motor.on(SLOW_SPEED, False)
             elif not pitch_motor.is_running and pitch_down:
-                pitch_motor.on_to_position(
-                    SLOW_SPEED, pitch_min*pitch_ratio, True, False)  # Down
+                pitch_motor.on(-SLOW_SPEED, False)
+                # pitch_motor.on_to_position(
+                #     SLOW_SPEED, pitch_motor.minPos, True, False)  # Down
             elif not pitch_up and not pitch_down and pitch_motor.is_running:
                 pitch_motor.stop()
 
+            # on/off control
             if not spin_motor.is_running and spin_left:
                 spin_motor.on_to_position(
                     SLOW_SPEED, spin_motor.minPos, True, False)  # Left
@@ -291,7 +300,8 @@ class MotorThread(threading.Thread):
                     SLOW_SPEED, spin_motor.maxPos, True, False)  # Right
             elif not spin_left and not spin_right and spin_motor.is_running:
                 spin_motor.stop()
-
+            
+            # on/off control
             if grabber_motor:
                 if grabber_open:
                     grabber_motor.on_to_position(
@@ -313,28 +323,27 @@ try:
     motor_thread.start()
 
     for event in gamepad.read_loop():  # this loops infinitely
-        if event.type == 3:
-            # logger.info(event)
+        if event.type == 3:  # stick input
             if event.code == 0:  # Left stick X-axis
                 shoulder_speed = scale_stick(event.value, invert=True)
             elif event.code == 3:  # Right stick X-axis
                 elbow_speed = -scale_stick(event.value, invert=True)
 
-        elif event.type == 1:
+        elif event.type == 1:  # button input
 
             if event.code == 310:  # L1
-                if event.value == 1 and not turning_left:
-                    turning_right = False
-                    turning_left = True
-                elif event.value == 0 and turning_left:
-                    turning_left = False
+                if event.value == 1 and not waist_left:
+                    waist_right = False
+                    waist_left = True
+                elif event.value == 0 and waist_left:
+                    waist_left = False
 
             elif event.code == 311:  # R1
-                if event.value == 1 and not turning_right:
-                    turning_left = False
-                    turning_right = True
-                elif event.value == 0 and turning_right:
-                    turning_right = False
+                if event.value == 1 and not waist_right:
+                    waist_left = False
+                    waist_right = True
+                elif event.value == 0 and waist_right:
+                    waist_right = False
 
             elif event.code == 308:  # Square
                 if event.value == 1:
@@ -386,6 +395,7 @@ try:
                     else:
                         grabber_open = True
                         grabber_close = False
+            
             elif event.code == 314 and event.value == 1:  # Share
                 reset_motors()
 
@@ -408,7 +418,6 @@ try:
 
                 time.sleep(1)  # Wait for the motor thread to finish
                 break
-
 
 except KeyboardInterrupt:
     clean_shutdown()

@@ -6,6 +6,8 @@ class SmartMotorBase:
     _motor = None
     _speed = None
     _name = None
+    _minPos = 5
+    _maxPos = None
 
     def __init__(self, motor, speed=10, name=None):
         self._motor = motor
@@ -15,21 +17,6 @@ class SmartMotorBase:
     def calibrate(self):
         print('Calibrating {}...'.format(self._name))
 
-    def __getattr__(self, name):
-        return getattr(self._motor, name)
-
-
-class StaticRangeMotor(SmartMotorBase):
-    _minPos = 5
-    _maxPos = None
-    
-    def __init__(self, motor, maxPos, speed=10, name=None):
-        self._maxPos = maxPos
-        super().__init__(motor, speed, name)
-    
-    def calibrate(self):
-        raise NotImplemented
-    
     @property
     def maxPos(self):
         return self._maxPos
@@ -41,11 +28,22 @@ class StaticRangeMotor(SmartMotorBase):
     @property
     def centerPos(self):
         return (self._maxPos - self._minPos) / 2
+    
+    def __getattr__(self, name):
+        return getattr(self._motor, name)
+
+
+class StaticRangeMotor(SmartMotorBase):
+    def __init__(self, motor, maxPos, speed=10, name=None):
+        self._maxPos = maxPos
+        super().__init__(motor, speed, name)
+    
+    def calibrate(self):
+        raise NotImplemented
+
 
 class LimitedRangeMotor(SmartMotorBase):
     """ handle motors with a limited range of valid movements """
-    _minPos = 5
-    _maxPos = None
 
     def calibrate(self):
         super().calibrate()
@@ -71,21 +69,9 @@ class LimitedRangeMotor(SmartMotorBase):
         self._motor.on_to_position(self._speed, self.centerPos, True, True)
         print('Motor {} found max {}'.format(self._name, self._maxPos))
 
-    @property
-    def maxPos(self):
-        return self._maxPos
-
-    @property
-    def minPos(self):
-        return self._minPos
-
-    @property
-    def centerPos(self):
-        return (self._maxPos - self._minPos) / 2
-
 
 class LimitedRangeMotorSet(LimitedRangeMotor):
-
+    """ handle a set of motors with limited range of valid movements """
     def calibrate(self):
         # super().calibrate()
         for motor in self._motor:
@@ -139,18 +125,21 @@ class LimitedRangeMotorSet(LimitedRangeMotor):
 
 
 class ColorSensorMotor(SmartMotorBase):
+    """ handle motors which initialize valid range of movement using a color sensor """
     _sensor = None
+    _color = None
 
-    def __init__(self, motor, speed=10, name=None, sensor=None):
+    def __init__(self, motor, speed=10, name=None, sensor=None, color=None):
         self._sensor = sensor
+        self._color = color
         super().__init__(motor, speed, name)
 
     def calibrate(self):
         super().calibrate()
-        if self._sensor.color != 5:
+        if self._sensor.color != self._color:
             # TODO: non hardcoded negative speed here to reverse direction
             self._motor.on(-self._speed, False)
-            while self._sensor.color != 5:
+            while self._sensor.color != self._color:
                 time.sleep(0.1)
 
         self._motor.reset()
@@ -161,11 +150,10 @@ class ColorSensorMotor(SmartMotorBase):
 
 class TouchSensorMotor(SmartMotorBase):
     _sensor = None
-    _max = None
 
     def __init__(self, motor, speed=10, name=None, sensor=None, max=None):
         self._sensor = sensor
-        self._max = max
+        self._maxPos = max
         super().__init__(motor, speed, name)
 
     def calibrate(self):
