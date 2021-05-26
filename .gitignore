@@ -5,3 +5,4 @@ __pycache__/
 *.dot
 htmlcov/
 .coverage
+legacy/
