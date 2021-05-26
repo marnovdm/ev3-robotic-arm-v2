@@ -136,26 +136,16 @@ except DeviceNotFound:
     logger.info("Grabber motor not detected - running without it...")
     grabber_motor = False
 
-# reset_motors()
 
-# Ratios
-pitch_ratio = 5
-spin_ratio = 7
-grabber_ratio = 24
+# Not sure why but resetting all motors before doing anything else seems to improve reliability
+reset_motors()
 
-# Not calibrated yet, hardcoded for now:
-pitch_max = 80
-pitch_min = -90
-spin_max = -360
-spin_min = 360
-grabber_max = -68
-grabber_min = 0
 
 # Variables for stick input
 shoulder_speed = 0
 elbow_speed = 0
 
-# State variables
+# Variables for button input
 waist_left = False
 waist_right = False
 roll_left = False
@@ -172,10 +162,12 @@ running = True
 
 
 def clean_shutdown(signal_received=None, frame=None):
-    """ make sure all motors are stopped when stopping robot arm """
+    """ make sure all motors are stopped when stopping this script """
     logger.info('Shutting down...')
+
     global running
     running = False
+    
     logger.info('waist..')
     waist_motor.stop()
     logger.info('shoulder..')
@@ -183,7 +175,8 @@ def clean_shutdown(signal_received=None, frame=None):
     logger.info('elbow..')
     elbow_motor.stop()
     logger.info('pitch..')
-    pitch_motor.reset()
+    # For some reason the pitch motor sometimes gets stuck here, and a reset helps?
+    # pitch_motor.reset()
     pitch_motor.stop()
     logger.info('roll..')
     roll_motor.stop()
@@ -200,10 +193,17 @@ def clean_shutdown(signal_received=None, frame=None):
 
 def calibrate_motors():
     logger.info('Calibrating motors...')
+
+    # Note that the order here matters. We want to ensure the shoulder is calibrated first so the elbow can 
+    # reach it's full range without hitting the floor.
     shoulder_motors.calibrate()
     roll_motor.calibrate()
     elbow_motor.calibrate()
+
+    # The waist motor has to be calibrated after calibrating the shoulder/elbow parts to ensure we're not 
+    # moving around with fully extended arm (which the waist motor gearing doesn't like)
     waist_motor.calibrate()
+    
     # pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
     if grabber_motor:
         grabber_motor.calibrate()
