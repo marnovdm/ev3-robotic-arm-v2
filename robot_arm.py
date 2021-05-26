@@ -64,17 +64,18 @@ def reset_motors():
 def motors_to_center():
     """ move all motors to their default position """
 
-    roll_motor.on_to_position(NORMAL_SPEED, roll_motor.centerPos, True, True)
-    pitch_motor.on_to_position(NORMAL_SPEED, 0, True, True)
+    shoulder_motors.on_to_position(
+        SLOW_SPEED, shoulder_motors.centerPos, True, True)
+    elbow_motor.on_to_position(SLOW_SPEED, elbow_motor.centerPos, True, True)
+
+    roll_motor.on_to_position(NORMAL_SPEED, roll_motor.centerPos, True, False)
+    pitch_motor.on_to_position(NORMAL_SPEED, 0, True, False)
     spin_motor.on_to_position(NORMAL_SPEED, spin_motor.centerPos, True, False)
 
     if grabber_motor:
         grabber_motor.on_to_position(
             NORMAL_SPEED, grabber_motor.centerPos, True, True)
 
-    elbow_motor.on_to_position(SLOW_SPEED, elbow_motor.centerPos, True, True)
-    shoulder_motors.on_to_position(
-        SLOW_SPEED, shoulder_motors.centerPos, True, True)
     waist_motor.on_to_position(FAST_SPEED, waist_motor.centerPos, True, True)
 
 
@@ -188,6 +189,12 @@ def clean_shutdown(signal_received=None, frame=None):
         logger.info('grabber..')
         grabber_motor.stop()
 
+    # https://github.com/gvalkov/python-evdev/issues/19
+    try:
+        gamepad.close()
+    except TypeError:
+        print('error in gamepad close method handled')
+
     logger.info('Shutdown completed.')
     sys.exit(0)
 
@@ -252,46 +259,46 @@ class MotorThread(threading.Thread):
                 elbow_motor.stop()
 
             # on/off control
-            if not waist_motor.is_running and waist_left:
+            if waist_left:
                 # logger.info('moving left...')
                 waist_motor.on(-FAST_SPEED, False)  # Left
-            elif not waist_motor.is_running and waist_right:
+            elif waist_right:
                 # logger.info('moving right...')
                 waist_motor.on(FAST_SPEED, False)  # Right
-            elif not waist_left and not waist_right and waist_motor.is_running:
+            elif waist_motor.is_running:
                 # logger.info('stopped moving left/right')
                 waist_motor.stop()
 
             # on/off control
-            if not roll_motor.is_running and roll_left:
+            if roll_left:
                 roll_motor.on_to_position(
                     SLOW_SPEED, roll_motor.minPos, True, False)  # Left
-            elif not roll_motor.is_running and roll_right:
+            elif roll_right:
                 roll_motor.on_to_position(
                     SLOW_SPEED, roll_motor.maxPos, True, False)  # Right
-            elif not roll_left and not roll_right and roll_motor.is_running:
+            elif roll_motor.is_running:
                 roll_motor.stop()
 
             # on/off control
-            if not pitch_motor.is_running and pitch_up:
+            if pitch_up:
                 # pitch_motor.on_to_position(
                 #     SLOW_SPEED, pitch_motor.maxPos, True, False)  # Up
                 pitch_motor.on(SLOW_SPEED, False)
-            elif not pitch_motor.is_running and pitch_down:
+            elif pitch_down:
                 pitch_motor.on(-SLOW_SPEED, False)
                 # pitch_motor.on_to_position(
                 #     SLOW_SPEED, pitch_motor.minPos, True, False)  # Down
-            elif not pitch_up and not pitch_down and pitch_motor.is_running:
+            elif pitch_motor.is_running:
                 pitch_motor.stop()
 
             # on/off control
-            if not spin_motor.is_running and spin_left:
+            if spin_left:
                 spin_motor.on_to_position(
                     SLOW_SPEED, spin_motor.minPos, True, False)  # Left
-            elif not spin_motor.is_running and spin_right:
+            elif spin_right:
                 spin_motor.on_to_position(
                     SLOW_SPEED, spin_motor.maxPos, True, False)  # Right
-            elif not spin_left and not spin_right and spin_motor.is_running:
+            elif spin_motor.is_running:
                 spin_motor.stop()
 
             # on/off control
@@ -306,6 +313,8 @@ class MotorThread(threading.Thread):
                     # grabber_motor.stop()
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
+        
+        logger.info("Engine stopping!")
 
 
 # Ensure clean shutdown on CTRL+C
@@ -369,6 +378,7 @@ for event in gamepad.read_loop():  # this loops infinitely
                 pitch_down = False
 
         elif event.code == 312:  # L2
+            # print(event)
             if event.value == 1:
                 spin_right = False
                 spin_left = True
@@ -391,18 +401,18 @@ for event in gamepad.read_loop():  # this loops infinitely
                     grabber_open = True
                     grabber_close = False
 
-        elif event.code == 314 and event.value == 1:  # Share
-            reset_motors()
-
-        elif event.code == 315 and event.value == 1:  # Options
-            # Reset
-            motors_to_center()
+        # elif event.code == 314 and event.value == 1:  # Share
+        #     reset_motors()
+        # 
+        # elif event.code == 315 and event.value == 1:  # Options
+        #     # Reset
+        #     motors_to_center()
 
         elif event.code == 316 and event.value == 1:  # PS
-            logger.info("Engine stopping!")
+            # stop control loop
             running = False
 
-            # Reset
+            # Move motors to default position
             motors_to_center()
 
             # sound.play_song((('E5', 'e'), ('C4', 'e')))
@@ -413,3 +423,5 @@ for event in gamepad.read_loop():  # this loops infinitely
 
             time.sleep(1)  # Wait for the motor thread to finish
             break
+
+clean_shutdown()
