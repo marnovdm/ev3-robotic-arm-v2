@@ -19,7 +19,7 @@ import time
 
 import evdev
 import rpyc
-from signal import signal, SIGINT, SIGTERM
+from signal import signal, SIGINT
 from ev3dev2 import DeviceNotFound
 from ev3dev2.led import Leds
 from ev3dev2.sensor import INPUT_4
@@ -49,35 +49,6 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout,
 logger = logging.getLogger(__name__)
 
 
-def clean_shutdown(signal_received=None, frame=None):
-    """ make sure all motors are stopped when stopping robot arm """
-    logger.info('Shutting down...')
-    running = False
-    logger.info('waist..')
-    waist_motor.stop()
-    logger.info('shoulder..')
-    shoulder_motors.stop()
-    logger.info('elbow..')
-    elbow_motor.stop()
-    logger.info('pitch..')
-    pitch_motor.reset()
-    pitch_motor.stop()
-    logger.info('roll..')
-    roll_motor.stop()
-    logger.info('spin..')
-    spin_motor.stop()
-
-    if grabber_motor:
-        logger.info('grabber..')
-        grabber_motor.stop()
-
-    logger.info('Shutdown completed.')
-
-
-# Clean shutdown on CTRL+C
-signal(SIGINT, clean_shutdown)
-
-
 def reset_motors():
     """ reset motor positions to default """
     logger.info("Resetting motors...")
@@ -96,7 +67,7 @@ def motors_to_center():
 
     roll_motor.on_to_position(NORMAL_SPEED, roll_motor.centerPos, True, True)
     pitch_motor.on_to_position(NORMAL_SPEED, 0, True, True)
-    spin_motor.on_to_position(NORMAL_SPEED, 0, True, False)
+    spin_motor.on_to_position(NORMAL_SPEED, spin_motor.centerPos, True, False)
 
     if grabber_motor:
         grabber_motor.on_to_position(NORMAL_SPEED, grabber_motor.centerPos, True, True)
@@ -207,6 +178,32 @@ grabber_close = False
 running = True
 
 
+def clean_shutdown(signal_received=None, frame=None):
+    """ make sure all motors are stopped when stopping robot arm """
+    logger.info('Shutting down...')
+    running = False
+    logger.info('waist..')
+    waist_motor.stop()
+    logger.info('shoulder..')
+    shoulder_motors.stop()
+    logger.info('elbow..')
+    elbow_motor.stop()
+    logger.info('pitch..')
+    pitch_motor.reset()
+    pitch_motor.stop()
+    logger.info('roll..')
+    roll_motor.stop()
+    logger.info('spin..')
+    spin_motor.stop()
+
+    if grabber_motor:
+        logger.info('grabber..')
+        grabber_motor.stop()
+
+    logger.info('Shutdown completed.')
+    sys.exit(0)
+
+
 def calibrate_motors():
     logger.info('Calibrating motors...')
     shoulder_motors.calibrate()
@@ -311,6 +308,9 @@ class MotorThread(threading.Thread):
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
 
+
+# Ensure clean shutdown on CTRL+C
+signal(SIGINT, clean_shutdown)
 
 calibrate_motors()
 
