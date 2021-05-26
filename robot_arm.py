@@ -4,7 +4,7 @@
 # - bugfixes
 # - don't require grabber attachment to run
 # - more debug output for troubleshooting
-# - improved gamepadd responsiveness
+# - improved gamepad responsiveness
 # - proportional control for some motors
 # - auto calibration for allowed motor ranges
 # - code cleanup / simplify
@@ -24,13 +24,12 @@ from ev3dev2 import DeviceNotFound
 from ev3dev2.led import Leds
 from ev3dev2.sensor import INPUT_4
 from ev3dev2.sensor.lego import ColorSensor
-from ev3dev2.motor import (OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, LargeMotor,
-                           MoveTank)
+from ev3dev2.motor import OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, LargeMotor
 # from ev3dev2.sound import Sound
-from evdev import InputDevice, categorize, ecodes
+from evdev import InputDevice
 
 from smart_motor import LimitedRangeMotor, LimitedRangeMotorSet, ColorSensorMotor, StaticRangeMotor
-from math_helper import scale, scale_stick
+from math_helper import scale_stick
 
 
 # Config
@@ -81,7 +80,7 @@ def motors_to_center():
     waist_motor.on_to_position(FAST_SPEED, waist_motor.centerPos, True, True)
 
 
-## Initial setup ##
+# Initial setup
 
 # RPyC
 # Setup on slave EV3: https://ev3dev-lang.readthedocs.io/projects/python-ev3dev/en/stable/rpyc.html
@@ -91,7 +90,7 @@ def motors_to_center():
 logger.info("Connecting RPyC to {}...".format(REMOTE_HOST))
 # change this IP address for your slave EV3 brick
 conn = rpyc.classic.connect(REMOTE_HOST)
-#remote_ev3 = conn.modules['ev3dev.ev3']
+# remote_ev3 = conn.modules['ev3dev.ev3']
 remote_motor = conn.modules['ev3dev2.motor']
 remote_led = conn.modules['ev3dev2.led']
 logger.info("RPyC started succesfully")
@@ -99,15 +98,7 @@ logger.info("RPyC started succesfully")
 # Gamepad
 # If bluetooth is not available, check https://github.com/ev3dev/ev3dev/issues/1314
 logger.info("Connecting wireless controller...")
-devices = [InputDevice(fn) for fn in evdev.list_devices()]
-# for device in devices:
-#     logger.info("{}".format(device.name))
-
-ps4gamepad = devices[0].fn      # PS4 gamepad
-# ps4motion = devices[1].fn      # PS4 accelerometer
-# ps4touchpad = devices[2].fn    # PS4 touchpad
-
-gamepad = InputDevice(ps4gamepad)
+gamepad = InputDevice(evdev.list_devices()[0])
 
 # LEDs
 leds = Leds()
@@ -183,6 +174,7 @@ running = True
 def clean_shutdown(signal_received=None, frame=None):
     """ make sure all motors are stopped when stopping robot arm """
     logger.info('Shutting down...')
+    global running
     running = False
     logger.info('waist..')
     waist_motor.stop()

@@ -10,11 +10,16 @@ ignore=
     D3,  # formatting
     D4,  # formatting
     Q003,  # Change outer quotes to avoid escaping inner quotes
+    Q000,  # quotes
+    C901,  # complexity
+
 exclude=
     # don't test tests
     tests/,
     # ignore documentation
     docs/,
+    # ignore legacy
+    legacy/,
     # ignore cache
     __pycache__,
     # ignore git repo dir
