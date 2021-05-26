@@ -75,8 +75,6 @@ def motors_to_center():
     elbow_motor.on_to_position(SLOW_SPEED, elbow_motor.centerPos, True, True)
     shoulder_motors.on_to_position(
         SLOW_SPEED, shoulder_motors.centerPos, True, True)
-    # shoulder_control1.on_to_position(SLOW_SPEED,0,True,True)
-    # shoulder_control2.on_to_position(SLOW_SPEED,0,True,True)
     waist_motor.on_to_position(FAST_SPEED, waist_motor.centerPos, True, True)
 
 
@@ -99,6 +97,9 @@ logger.info("RPyC started succesfully")
 # If bluetooth is not available, check https://github.com/ev3dev/ev3dev/issues/1314
 logger.info("Connecting wireless controller...")
 gamepad = InputDevice(evdev.list_devices()[0])
+if gamepad.name != 'Wireless Controller':
+    logger.error('Failed to connect to wireless controller')
+    sys.exit(1)
 
 # LEDs
 leds = Leds()
@@ -203,7 +204,7 @@ def calibrate_motors():
     # The waist motor has to be calibrated after calibrating the shoulder/elbow parts to ensure we're not 
     # moving around with fully extended arm (which the waist motor gearing doesn't like)
     waist_motor.calibrate()
-    
+
     # pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
     if grabber_motor:
         grabber_motor.calibrate()
