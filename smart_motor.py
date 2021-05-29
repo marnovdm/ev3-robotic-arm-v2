@@ -7,15 +7,16 @@ class SmartMotorBase:
     _motor = None
     _speed = None
     _name = None
-    _minPos = 5
-    _maxPos = None
+    _minPos = -5000  # @TODO revert to None or 5..?
+    _maxPos = 5000  # @TODO revert to None
+    _motorPadding = 10
 
     def __init__(self, motor, speed=10, name=None):
         self._motor = motor
         self._speed = speed
         self._name = name
 
-    def calibrate(self):
+    def calibrate(self, to_center=True):
         print('Calibrating {}...'.format(self._name))
 
     @property
@@ -41,67 +42,77 @@ class StaticRangeMotor(SmartMotorBase):
         self._minPos = (maxPos / 2) * -1
         super().__init__(motor, speed, name)
 
-    def calibrate(self):
+    def calibrate(self, to_center=True):
         raise NotImplementedError
 
 
 class LimitedRangeMotor(SmartMotorBase):
     """ handle motors with a limited range of valid movements """
 
-    def calibrate(self):
+    def calibrate(self, to_center=True):
         super().calibrate()
         self._motor.on(-self._speed, False)
 
         def checkMotorState(state):
-            # print(state)
+            print(state)
             if 'overloaded' in state or 'stalled' in state:
                 return True
 
             return False
 
-        self._motor.wait(checkMotorState, 10000)
+        # self._motor.wait(checkMotorState, 10000)
+        self._motor.wait_until('stalled')
         self._motor.reset()  # sets 0 point
+        self._minPos = self._motor.position + self._motorPadding
 
         self._motor.on(self._speed, False)
-        # self._motor.wait_until('stalled')
+        self._motor.wait_until('stalled')
 
-        self._motor.wait(checkMotorState, 10000)
+        # self._motor.wait(checkMotorState, 10000)
         self._motor.stop()
+        self._maxPos = self._motor.position - self._motorPadding
 
-        self._maxPos = self._motor.position - 5
-        self._motor.on_to_position(self._speed, self.centerPos, True, True)
+        if to_center:
+            self._motor.on_to_position(self._speed, self.centerPos, True, True)
+        
         print('Motor {} found max {}'.format(self._name, self._maxPos))
 
 
 class LimitedRangeMotorSet(LimitedRangeMotor):
     """ handle a set of motors with limited range of valid movements """
 
-    def calibrate(self):
+    def calibrate(self, to_center=True):
         # super().calibrate()
         for motor in self._motor:
             motor.on(-self._speed, False)
 
         def checkMotorState(state):
-            # print(state)
+            print(state)
             if 'overloaded' in state or 'stalled' in state:
                 return True
 
             return False
-
-        self._motor[1].wait(checkMotorState, 10000)
+        
+        self._motor[1].wait_until('stalled')
+        # self._motor[1].wait(checkMotorState, 10000)
         for motor in self._motor:
             motor.reset()  # sets 0 point
+        
+        self._minPos = self._motor[1].position + self._motorPadding
 
         for motor in self._motor:
             motor.on(self._speed, False)
 
-        self._motor[1].wait(checkMotorState, 10000)
+        # self._motor[1].wait(checkMotorState, 10000)
+        self._motor[1].wait_until('stalled')
         for motor in self._motor:
             motor.stop()
 
-        self._maxPos = self._motor[1].position
-        for motor in self._motor:
-            motor.on_to_position(self._speed, self.centerPos, True, False)
+        self._maxPos = self._motor[1].position - self._motorPadding
+        
+        if to_center:
+            for motor in self._motor:
+                motor.on_to_position(self._speed, self.centerPos, True, False)
 
         # cant wait here because of motor set, so let's at least give it some time
         time.sleep(1)

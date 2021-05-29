@@ -22,7 +22,7 @@ import rpyc
 from signal import signal, SIGINT
 from ev3dev2 import DeviceNotFound
 from ev3dev2.led import Leds
-from ev3dev2.sensor import INPUT_4
+from ev3dev2.sensor import INPUT_1
 from ev3dev2.sensor.lego import ColorSensor
 from ev3dev2.motor import OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, LargeMotor
 # from ev3dev2.sound import Sound
@@ -43,6 +43,7 @@ SLOW_SPEED = 25
 
 
 # Setup logging
+os.system('setfont Lat7-Terminus12x6')
 logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                     format='%(message)s')
 logger = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ remote_leds = remote_led.Leds()
 
 # Primary EV3
 # Sensors
-color_sensor = ColorSensor(INPUT_4)
+color_sensor = ColorSensor(INPUT_1)
 color_sensor.mode = ColorSensor.MODE_COL_COLOR
 
 # Motors
@@ -127,12 +128,14 @@ roll_motor = LimitedRangeMotor(remote_motor.MediumMotor(
     remote_motor.OUTPUT_A), speed=30, name='roll')
 pitch_motor = LimitedRangeMotor(remote_motor.MediumMotor(
     remote_motor.OUTPUT_B), speed=10, name='pitch')
+pitch_motor.stop_action = remote_motor.MediumMotor.STOP_ACTION_COAST
 spin_motor = StaticRangeMotor(remote_motor.MediumMotor(
     remote_motor.OUTPUT_C), maxPos=14 * 360, speed=20, name='spin')
 
 try:
     grabber_motor = LimitedRangeMotor(
-        remote_motor.MediumMotor(remote_motor.OUTPUT_D))
+        remote_motor.MediumMotor(remote_motor.OUTPUT_D), speed=20, name='grabber')
+    grabber_motor.stop_action = remote_motor.MediumMotor.STOP_ACTION_COAST
     logger.info("Grabber motor detected!")
 except DeviceNotFound:
     logger.info("Grabber motor not detected - running without it...")
@@ -205,16 +208,16 @@ def calibrate_motors():
     # Note that the order here matters. We want to ensure the shoulder is calibrated first so the elbow can 
     # reach it's full range without hitting the floor.
     shoulder_motors.calibrate()
-    roll_motor.calibrate()
+    ### roll_motor.calibrate()
     elbow_motor.calibrate()
 
     # The waist motor has to be calibrated after calibrating the shoulder/elbow parts to ensure we're not 
     # moving around with fully extended arm (which the waist motor gearing doesn't like)
     waist_motor.calibrate()
 
-    # pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
+    pitch_motor.calibrate()  # needs to be more robust, gear slips now instead of stalling the motor
     if grabber_motor:
-        grabber_motor.calibrate()
+        grabber_motor.calibrate(to_center=False)
 
 
 class MotorThread(threading.Thread):
@@ -261,10 +264,10 @@ class MotorThread(threading.Thread):
             # on/off control
             if waist_left:
                 # logger.info('moving left...')
-                waist_motor.on(-FAST_SPEED, False)  # Left
+                waist_motor.on(-SLOW_SPEED, False)  # Left
             elif waist_right:
                 # logger.info('moving right...')
-                waist_motor.on(FAST_SPEED, False)  # Right
+                waist_motor.on(SLOW_SPEED, False)  # Right
             elif waist_motor.is_running:
                 # logger.info('stopped moving left/right')
                 waist_motor.stop()
@@ -304,13 +307,15 @@ class MotorThread(threading.Thread):
             # on/off control
             if grabber_motor:
                 if grabber_open:
-                    grabber_motor.on_to_position(
-                        NORMAL_SPEED, grabber_motor.maxPos, True, True)  # Close
+                    # grabber_motor.on_to_position(
+                    #     NORMAL_SPEED, grabber_motor.maxPos, True, True)  # Close
                     # grabber_motor.stop()
+                    grabber_motor.on(SLOW_SPEED, False)
                 elif grabber_close:
-                    grabber_motor.on_to_position(
-                        NORMAL_SPEED, grabber_motor.minPos, True, True)  # Open
+                    # grabber_motor.on_to_position(
+                    #     NORMAL_SPEED, grabber_motor.minPos, True, True)  # Open
                     # grabber_motor.stop()
+                    grabber_motor.on(-SLOW_SPEED, False)
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
         
@@ -320,7 +325,7 @@ class MotorThread(threading.Thread):
 # Ensure clean shutdown on CTRL+C
 signal(SIGINT, clean_shutdown)
 
-calibrate_motors()
+# calibrate_motors()
 
 motor_thread = MotorThread()
 motor_thread.setDaemon(True)
@@ -392,14 +397,19 @@ for event in gamepad.read_loop():  # this loops infinitely
             elif event.value == 0:
                 spin_right = False
 
+        elif event.code == 317:  # L3
+            if event.value == 1:
+                grabber_close = False
+                grabber_open = True
+            elif event.value == 0:
+                grabber_open = False
+
         elif event.code == 318:  # R3
             if event.value == 1:
-                if grabber_open:
-                    grabber_open = False
-                    grabber_close = True
-                else:
-                    grabber_open = True
-                    grabber_close = False
+                grabber_open = False
+                grabber_close = True
+            elif event.value == 0:
+                grabber_close = False
 
         # elif event.code == 314 and event.value == 1:  # Share
         #     reset_motors()
