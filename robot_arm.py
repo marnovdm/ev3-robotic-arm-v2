@@ -25,6 +25,8 @@ from ev3dev2.led import Leds
 from ev3dev2.sensor import INPUT_1
 from ev3dev2.sensor.lego import ColorSensor
 from ev3dev2.motor import OUTPUT_A, OUTPUT_B, OUTPUT_C, OUTPUT_D, LargeMotor
+from ev3dev2.power import PowerSupply
+
 # from ev3dev2.sound import Sound
 from evdev import InputDevice
 
@@ -40,7 +42,7 @@ FULL_SPEED = 100
 FAST_SPEED = 75
 NORMAL_SPEED = 50
 SLOW_SPEED = 25
-
+VERY_SLOW_SPEED = 10
 
 # Setup logging
 os.system('setfont Lat7-Terminus12x6')
@@ -91,6 +93,7 @@ logger.info("Connecting RPyC to {}...".format(REMOTE_HOST))
 # change this IP address for your slave EV3 brick
 conn = rpyc.classic.connect(REMOTE_HOST)
 # remote_ev3 = conn.modules['ev3dev.ev3']
+remote_power_mod = conn.modules['ev3dev2.power']
 remote_motor = conn.modules['ev3dev2.motor']
 remote_led = conn.modules['ev3dev2.led']
 logger.info("RPyC started succesfully")
@@ -106,6 +109,10 @@ if gamepad.name != 'Wireless Controller':
 # LEDs
 leds = Leds()
 remote_leds = remote_led.Leds()
+
+# Power
+power = PowerSupply(name_pattern='*ev3*')
+remote_power = remote_power_mod.PowerSupply(name_pattern='*ev3*')
 
 # Sound
 # sound = Sound()
@@ -164,6 +171,10 @@ grabber_close = False
 
 # We are running!
 running = True
+
+def log_power_info():
+    logger.info('Local battery power: {}V / {}A'.format(round(power.measured_volts,2 ), round(power.measured_amps, 2)))
+    logger.info('Remote battery power: {}V / {}A'.format(round(remote_power.measured_volts, 2), round(remote_power.measured_amps, 2)))
 
 
 def clean_shutdown(signal_received=None, frame=None):
@@ -226,7 +237,7 @@ class MotorThread(threading.Thread):
 
     def run(self):
         logger.info("Engine running!")
-        os.system('setfont Lat7-Terminus12x6')
+        # os.system('setfont Lat7-Terminus12x6')
         leds.set_color("LEFT", "BLACK")
         leds.set_color("RIGHT", "BLACK")
         remote_leds.set_color("LEFT", "BLACK")
@@ -286,9 +297,9 @@ class MotorThread(threading.Thread):
             if pitch_up:
                 # pitch_motor.on_to_position(
                 #     SLOW_SPEED, pitch_motor.maxPos, True, False)  # Up
-                pitch_motor.on(SLOW_SPEED, False)
+                pitch_motor.on(VERY_SLOW_SPEED, False)
             elif pitch_down:
-                pitch_motor.on(-SLOW_SPEED, False)
+                pitch_motor.on(-VERY_SLOW_SPEED, False)
                 # pitch_motor.on_to_position(
                 #     SLOW_SPEED, pitch_motor.minPos, True, False)  # Down
             elif pitch_motor.is_running:
@@ -310,12 +321,12 @@ class MotorThread(threading.Thread):
                     # grabber_motor.on_to_position(
                     #     NORMAL_SPEED, grabber_motor.maxPos, True, True)  # Close
                     # grabber_motor.stop()
-                    grabber_motor.on(SLOW_SPEED, False)
+                    grabber_motor.on(NORMAL_SPEED, False)
                 elif grabber_close:
                     # grabber_motor.on_to_position(
                     #     NORMAL_SPEED, grabber_motor.minPos, True, True)  # Open
                     # grabber_motor.stop()
-                    grabber_motor.on(-SLOW_SPEED, False)
+                    grabber_motor.on(-NORMAL_SPEED, False)
                 elif grabber_motor.is_running:
                     grabber_motor.stop()
         
@@ -325,8 +336,8 @@ class MotorThread(threading.Thread):
 # Ensure clean shutdown on CTRL+C
 signal(SIGINT, clean_shutdown)
 
+log_power_info()
 # calibrate_motors()
-
 motor_thread = MotorThread()
 motor_thread.setDaemon(True)
 motor_thread.start()
@@ -336,7 +347,7 @@ for event in gamepad.read_loop():  # this loops infinitely
         if event.code == 0:  # Left stick X-axis
             shoulder_speed = scale_stick(event.value, invert=True)
         elif event.code == 3:  # Right stick X-axis
-            elbow_speed = -scale_stick(event.value, invert=True)
+            elbow_speed = scale_stick(event.value)
 
     elif event.type == 1:  # button input
 
@@ -411,19 +422,21 @@ for event in gamepad.read_loop():  # this loops infinitely
             elif event.value == 0:
                 grabber_close = False
 
-        # elif event.code == 314 and event.value == 1:  # Share
-        #     reset_motors()
-        # 
+        elif event.code == 314 and event.value == 1:  # Share
+            # reset_motors()
+            log_power_info()
+         
         # elif event.code == 315 and event.value == 1:  # Options
-        #     # Reset
-        #     motors_to_center()
+        #     # Waist motor to starting point
+        #     # waist_motor.calibrate()
+        #     # @TODO cant run calibrate while running. But setting running to False terminates the program :/
 
         elif event.code == 316 and event.value == 1:  # PS
             # stop control loop
             running = False
 
             # Move motors to default position
-            motors_to_center()
+            # motors_to_center()
 
             # sound.play_song((('E5', 'e'), ('C4', 'e')))
             leds.set_color("LEFT", "BLACK")
