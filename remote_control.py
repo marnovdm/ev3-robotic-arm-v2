@@ -101,7 +101,7 @@ remote_power = remote_power_mod.PowerSupply(name_pattern='*ev3*')
 # Primary EV3
 # Motors
 waist_motor = LargeMotor(OUTPUT_A)
-shoulder_motors = MoveTank(LargeMotor(OUTPUT_B), LargeMotor(OUTPUT_C))
+shoulder_motors = MoveTank(OUTPUT_B, OUTPUT_C)
 elbow_motor = LargeMotor(OUTPUT_D)
 
 # Secondary EV3
@@ -355,12 +355,14 @@ for event in gamepad.read_loop():  # this loops infinitely
                 grabber_close = False
 
         elif event.code == 314 and event.value == 1:  # Share
+            # debug info
             log_power_info()
          
-        # elif event.code == 315 and event.value == 1:  # Options
-        #     # Waist motor to starting point
-        #     # waist_motor.calibrate()
-        #     # @TODO cant run calibrate while running. But setting running to False terminates the program :/
+        elif event.code == 315 and event.value == 1:  # Options
+            # debug info
+            logger.info('Elbow motor state: {}'.format(elbow_motor.state))
+            logger.info('Elbow motor duty cycle: {}'.format(elbow_motor.duty_cycle))
+            logger.info('Elbow motor speed: {}'.format(elbow_motor.speed))
 
         elif event.code == 316 and event.value == 1:  # PS
             # stop control loop
