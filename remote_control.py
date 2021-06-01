@@ -282,17 +282,17 @@ for event in gamepad.read_loop():  # this loops infinitely
     elif event.type == 1:  # button input
 
         if event.code == 310:  # L1
-            if event.value == 1 and not waist_left:
+            if event.value == 1:
                 waist_right = False
                 waist_left = True
-            elif event.value == 0 and waist_left:
+            elif event.value == 0:
                 waist_left = False
 
         elif event.code == 311:  # R1
-            if event.value == 1 and not waist_right:
+            if event.value == 1:
                 waist_left = False
                 waist_right = True
-            elif event.value == 0 and waist_right:
+            elif event.value == 0:
                 waist_right = False
 
         elif event.code == 308:  # Square
