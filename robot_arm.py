@@ -203,11 +203,9 @@ def clean_shutdown(signal_received=None, frame=None):
         logger.info('grabber..')
         grabber_motor.stop()
 
-    # https://github.com/gvalkov/python-evdev/issues/19
-    try:
-        gamepad.close()
-    except TypeError:
-        print('error in gamepad close method handled')
+    # See https://github.com/gvalkov/python-evdev/issues/19 if this raises exceptions, but it seems 
+    # stable now.
+    gamepad.close()
 
     logger.info('Shutdown completed.')
     sys.exit(0)
