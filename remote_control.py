@@ -6,7 +6,6 @@
 # - more debug output for troubleshooting
 # - improved gamepad responsiveness
 # - proportional control for some motors
-# - auto calibration for allowed motor ranges
 # - code cleanup / simplify
 #
 __author__ = 'Nino Guba'
