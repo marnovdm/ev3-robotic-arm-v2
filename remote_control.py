@@ -276,7 +276,7 @@ for event in gamepad.read_loop():  # this loops infinitely
         if event.code == 0:  # Left stick X-axis
             shoulder_speed = scale_stick(event.value, invert=True)
         elif event.code == 3:  # Right stick X-axis
-            elbow_speed = scale_stick(event.value)
+            elbow_speed = scale_stick(event.value, scale_to=100)
 
     elif event.type == 1:  # button input
 
